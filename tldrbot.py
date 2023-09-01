@@ -219,9 +219,18 @@ def get_summary(url):
         model_input_size = MODEL.config.max_position_embeddings
         logging.info(f"Model's max input size: {model_input_size}")
 
+        # Ensure the tokenized input does not exceed the model's maximum input size
+        input_ids = inputs.input_ids[0][:model_input_size].unsqueeze(0)
+        attention_mask = inputs.attention_mask[0][:model_input_size].unsqueeze(0)
+
+        # Check if the input is too short for the model
+        if len(input_ids[0]) < 5:  # Example minimum length
+            logging.warning(f"Tokenized input is too short for URL {url}. Skipping.")
+            return None
+
         # Attempt summary generation and catch potential errors
         try:
-            summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
+            summary_ids = MODEL.generate(input_ids, attention_mask=attention_mask, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
         except Exception as gen_error:
             logging.error(f"Error during summary generation for URL {url}: {gen_error}")
             return None
