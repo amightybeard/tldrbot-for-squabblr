@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r includes/requirements.txt
-        pip install beautifulsoup4 transformers
+        pip install packaging --upgrade
 
     - name: Squabblr TLDRBot
       run: python tldrbot.py
