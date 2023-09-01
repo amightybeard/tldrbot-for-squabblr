@@ -1,0 +1,28 @@
+name: Run Squabblr TLDRBot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        pip install -r includes/requirements.txt
+
+    - name: Squabblr TLDRBot
+      run: python tldrbot.py
+      env:
+        SQUABBLES_TOKEN: ${{ secrets.SQUABBLES_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.WRITE_TO_TIMESTAMP }}
+        SMMRY_TOKEN: ${{ secrets.SMMRY_TOKEN }}
