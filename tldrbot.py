@@ -140,18 +140,29 @@ def extract_content_with_bs(url):
 def get_summary(url):
     try:
         response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
+        response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
+
+        # Check the response
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch content from URL: {url}. Status code: {response.status_code}")
+            return None
 
         soup = BeautifulSoup(response.content, 'html.parser')
         paragraphs = soup.find_all('p')
         article = "\n".join([para.text for para in paragraphs])
 
-        # Validate the web scraping result
+        # Check the parsed content
         if not article or len(article.strip()) == 0:
             logging.error(f"No valid content fetched from URL: {url}")
             return None
 
         inputs = TOKENIZER([article], max_length=2048, return_tensors='pt', truncation=True)
+
+        # Check the tokenization results
+        if not inputs or not hasattr(inputs, 'input_ids') or len(inputs.input_ids) == 0:
+            logging.error(f"Failed to tokenize content from URL: {url}")
+            return None
+
         summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
         
@@ -159,6 +170,7 @@ def get_summary(url):
     except Exception as e:
         logging.error(f"Error in generating summary for URL: {url}. Error: {e}")
         return None
+
 
 def get_latest_posts(username, community):
     last_timestamp = get_last_timestamp(community) or datetime.min
