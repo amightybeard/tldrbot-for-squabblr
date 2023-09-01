@@ -4,6 +4,8 @@ import json
 import logging
 from urllib.parse import urlparse
 import csv
+from bs4 import BeautifulSoup
+from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
@@ -113,28 +115,25 @@ def read_word_blacklist(filename="includes/blacklist-words.txt"):
     return blacklist
 
 def get_summary(article_url):
-    payload = {
-        "SM_API_KEY": SMMRY_TOKEN,
-        "SM_URL": article_url,
-        "SM_LENGTH": "5",
-        "SM_QUOTE_AVOID": "true",
-        "SM_QUESTION_AVOID": "true",
-        "SM_EXCLAMATION_AVOID": "true",
-        "SM_WITH_BREAK": "true"
-    }
-    response = requests.get("https://api.smmry.com", params=payload)
-    data = response.json()
-    
-    # Check for errors in the response
-    if response.status_code != 200:
-        logging.error(f"Error {response.status_code} when fetching summary for URL: {article_url}")
-    
-    if "sm_api_error" in data:
-        logging.error(f"Smmry API error: {data['sm_api_error']} for URL: {article_url}")
-    
-    summary = data.get("sm_api_content", "")
-    # Convert the summary into bullet points
-    return format_as_bullet_points(summary)
+    """
+    Fetches the article content from the given URL and generates a summary using HuggingFace's model.
+    """
+    # Load the BART model and tokenizer for summarization
+    model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
+    tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+
+    # Fetch the article content using BeautifulSoup
+    response = requests.get(article_url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    paragraphs = soup.find_all('p')
+    article_content = " ".join([p.text for p in paragraphs])
+
+    # Encode the article content and generate the summary using HuggingFace's model
+    inputs = tokenizer.encode("summarize: " + article_content, return_tensors="pt", max_length=1024, truncation=True)
+    summary_ids = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
+    return summary
 
 def get_latest_posts(username, community):
     last_timestamp = get_last_timestamp(community)
