@@ -178,9 +178,9 @@ def get_latest_posts(username, community):
                     continue  # Skip this post if its domain is blacklisted
                 if url:
                     summary = get_summary(url)
-                    word_blacklist = read_word_blacklist()
-                    for word in word_blacklist:
-                        summary = summary.replace(word, "")  # Remove blacklisted words/phrases from the summary
+                    # word_blacklist = read_word_blacklist()
+                    # for word in word_blacklist:
+                        # summary = summary.replace(word, "")  # Remove blacklisted words/phrases from the summary
 
                     if summary:
                         # Convert the summary into bullet points
