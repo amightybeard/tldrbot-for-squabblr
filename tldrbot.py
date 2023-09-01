@@ -49,6 +49,11 @@ from io import StringIO
 def get_last_timestamp(community_name):
     resp = requests.get(f'https://api.github.com/gists/{GIST_ID}', headers={'Authorization': f'token {GIST_TOKEN}'})
     data = resp.json()
+
+    # Check if the response contains the 'files' key
+    if 'files' not in data:
+        logging.error(f"Unexpected API response: {data}")
+        return datetime.min
     
     # Extract the CSV content from the Gist response
     csv_content = data['files'][FILE_NAME]['content']
