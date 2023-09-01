@@ -19,10 +19,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r includes/requirements.txt
+        pip install beautifulsoup4 transformers
 
     - name: Squabblr TLDRBot
       run: python tldrbot.py
       env:
         SQUABBLES_TOKEN: ${{ secrets.SQUABBLES_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.WRITE_TO_TIMESTAMP }}
-        SMMRY_TOKEN: ${{ secrets.SMMRY_TOKEN }}
