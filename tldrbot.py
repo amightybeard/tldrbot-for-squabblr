@@ -41,7 +41,7 @@ def post_reply(post_id, summary):
     if resp.status_code == 200:
         logging.info(f"Successfully posted a reply for post ID: {post_id}")
     else:
-        logging.warning(f"Failed to post a reply for post ID: {post_id}. Response: {resp.text}")
+        logging.warning(f"Failed to post a reply for post ID: {post_id}.")
         
     return resp.json()
 
