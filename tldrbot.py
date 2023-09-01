@@ -50,12 +50,14 @@ def get_last_timestamp(community_name):
     data = resp.json()
 
     # Check if the response contains the 'files' key
-    if 'files' not in data:
-        logging.error(f"Unexpected API response: {data}")
-        return datetime.min
-    
-    # Extract the CSV content from the Gist response
+    if 'files' in data and FILE_NAME in data['files']:
     csv_content = data['files'][FILE_NAME]['content']
+    csv_content_decoded = base64.b64decode(csv_content).decode('utf-8')
+    
+    else:
+        print("Error: 'files' key not found in GitHub API response or file not present in Gist.")
+        return
+
     
     # Use StringIO to treat the CSV string as a file-like object
     csv_file = StringIO(csv_content)
