@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 canned_message_header = """
 This is the best TL;DR I could come up with for this article:
 
+-----
 """
 
 canned_message_footer = """
