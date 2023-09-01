@@ -211,6 +211,20 @@ def get_summary(url):
             return None
 
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
+
+        # Log the shape of tokenized inputs
+        logging.info(f"Shape of tokenized input_ids for URL {url}: {inputs.input_ids.shape}")
+
+        # Check the model's expected input size
+        model_input_size = MODEL.config.max_position_embeddings
+        logging.info(f"Model's max input size: {model_input_size}")
+
+        # Attempt summary generation and catch potential errors
+        try:
+            summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
+        except Exception as gen_error:
+            logging.error(f"Error during summary generation for URL {url}: {gen_error}")
+            return None
         
         return summary
     except Exception as e:
