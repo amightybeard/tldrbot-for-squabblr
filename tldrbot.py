@@ -51,8 +51,8 @@ def get_last_timestamp(community_name):
 
     # Check if the response contains the 'files' key
     if 'files' in data and FILE_NAME in data['files']:
-    csv_content = data['files'][FILE_NAME]['content']
-    csv_content_decoded = base64.b64decode(csv_content).decode('utf-8')
+        csv_content = data['files'][FILE_NAME]['content']
+        csv_content_decoded = base64.b64decode(csv_content).decode('utf-8')
     
     else:
         print("Error: 'files' key not found in GitHub API response or file not present in Gist.")
