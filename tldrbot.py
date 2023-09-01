@@ -191,7 +191,7 @@ def get_summary(url):
             logging.error(f"No valid content fetched from URL: {url}")
             return None
 
-        inputs = TOKENIZER([article], max_length=2048, return_tensors='pt', truncation=True)
+        inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
 
         # Log the tokenized inputs
         logging.info(f"Tokenized inputs from URL {url}: {str(inputs)[:100]}...")
