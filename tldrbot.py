@@ -144,8 +144,8 @@ def get_summary(url):
         article = "\n".join([para.text for para in paragraphs])
 
         # Use the BART model to generate a summary
-        inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
-        summary_ids = MODEL.generate(inputs.input_ids, num_beams=4, length_penalty=2.0, max_length=250, min_length=50, no_repeat_ngram_size=2)
+        inputs = TOKENIZER([article], max_length=2048, return_tensors='pt', truncation=True)
+        summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
 
         return summary
