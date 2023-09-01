@@ -3,19 +3,29 @@ import os
 import json
 import logging
 import io
-from urllib.parse import urlparse
 import csv
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
 
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
+
+# Constants
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
 GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
 GIST_ID = 'fd0e432ea9f3f7d1869ea7a52e26d6fe'
 FILE_NAME = 'tldrbot-timestamp.csv'
 CSV_PATH = 'includes/communities.csv'
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
-logging.basicConfig(level=logging.INFO)
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
+
+# Initialize BART model and tokenizer
+MODEL_NAME = "facebook/bart-large-cnn"
+MODEL = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
+TOKENIZER = BartTokenizer.from_pretrained(MODEL_NAME)
 
 canned_message_header = """
 This is the best TL;DR I could come up with for this article:
@@ -106,15 +116,6 @@ def read_word_blacklist(filename="includes/blacklist-words.txt"):
         blacklist = [line.strip() for line in file]
     return blacklist
 
-from bs4 import BeautifulSoup
-import requests
-from transformers import BartTokenizer, BartForConditionalGeneration
-
-# Initialize the BART model and tokenizer
-MODEL_NAME = "facebook/bart-large-cnn"
-TOKENIZER = BartTokenizer.from_pretrained(MODEL_NAME)
-MODEL = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
-
 def extract_content_with_bs(url):
     """
     Extracts main content of an article using BeautifulSoup
@@ -137,22 +138,23 @@ def extract_content_with_bs(url):
 
 def get_summary(url):
     try:
-        # Fetch the article's content
-        response = requests.get(url)
+        response = requests.get(url, headers=HEADERS)
         response.raise_for_status()
 
-        # Use BeautifulSoup to extract the article's content
         soup = BeautifulSoup(response.content, 'html.parser')
         paragraphs = soup.find_all('p')
         article = "\n".join([para.text for para in paragraphs])
 
-        # Use the BART model to generate a summary
+        # Validate the web scraping result
+        if not article or len(article.strip()) == 0:
+            logging.error(f"No valid content fetched from URL: {url}")
+            return None
+
         inputs = TOKENIZER([article], max_length=2048, return_tensors='pt', truncation=True)
         summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
-
+        
         return summary
-
     except Exception as e:
         logging.error(f"Error in generating summary for URL: {url}. Error: {e}")
         return None
@@ -167,35 +169,36 @@ def get_latest_posts(username, community):
 
     for post in data.get('data', []):
         created_at = post['created_at']
-        post_date = datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%fZ')
+        post_date = datetime.strptime(created_at, DATE_FORMAT)
         if post_date > last_timestamp:
             post_id = post['hash_id']
             logging.info(f"New post found with ID: {post_id} and date: {post_date}")
+            
             if post.get("url_meta"):
                 url = post["url_meta"].get("url")
                 post_domain = urlparse(url).netloc
+                
                 if post_domain in domain_blacklist:
+                    logging.info(f"Skipping post with ID: {post_id} due to blacklisted domain: {post_domain}")
                     continue  # Skip this post if its domain is blacklisted
+                
                 if url:
                     summary = get_summary(url)
-                    # word_blacklist = read_word_blacklist()
-                    # for word in word_blacklist:
-                        # summary = summary.replace(word, "")  # Remove blacklisted words/phrases from the summary
-
-                    if summary:
-                        # Convert the summary into bullet points
-                        response = f"{canned_message_header}\n\n{summary}\n\n{canned_message_footer}"
-                        r = post_reply(post_id, response)
-                        if r:
-                            print("Posted: " + post_id)
-                            # Save the post details to the CSV
-                            save_last_timestamp(community, post["url"], post_date)
-                        else:
-                            print(post)
-                            print("Failed Posting: " + post_id)
+                    if not summary:
+                        logging.error(f"Failed to generate summary for post with ID: {post_id}")
+                        continue
+                    
+                    # Convert the summary into bullet points
+                    response = f"{canned_message_header}\n\n{summary}\n\n{canned_message_footer}"
+                    r = post_reply(post_id, response)
+                    if r:
+                        logging.info(f"Posted summary for post ID: {post_id}")
+                        # Save the post details to the CSV
+                        save_last_timestamp(community, post["url"], post_date)
+                    else:
+                        logging.error(f"Failed to post summary for post with ID: {post_id}")
             else:
                 logging.info(f"No new post since the last timestamp: {last_timestamp}")
-
 
 if __name__ == "__main__":
     with open(CSV_PATH, mode='r') as file:
