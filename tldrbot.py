@@ -4,6 +4,7 @@ import json
 import logging
 import io
 import csv
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
