@@ -15,7 +15,6 @@ GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
 GIST_ID = os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot-timestamp.csv'
 CSV_PATH = 'includes/communities.csv'
-SMMRY_TOKEN = os.environ.get('SMMRY_TOKEN')
 
 canned_message_header = """
 This is the best TL;DR I could come up with for this article:
@@ -77,7 +76,7 @@ def save_last_timestamp(community, post_url, timestamp):
     # First, fetch the current content of the CSV from the Gist
     resp = requests.get(f'https://api.github.com/gists/{GIST_ID}', headers={'Authorization': f'token {GIST_TOKEN}'})
     data = resp.json()
-    
+    print(f"GitHub API Response: {data}")
     # Extract the CSV content from the Gist response
     csv_content = data['files'][FILE_NAME]['content']
 
@@ -105,14 +104,16 @@ def read_domain_blacklist(filename="includes/blacklist-domains.txt"):
     return blacklist
 
 def format_as_bullet_points(summary):
-    summary = summary.lstrip('-').strip()  # Remove leading '-' and strip any whitespace
+    # summary = summary.lstrip('-').strip()  # Remove leading '-' and strip any whitespace
 
     # Split the summary into sentences
-    sentences = summary.split("[BREAK]")
+    # sentences = summary.split("[BREAK]")
     
     # Convert sentences into bullet points
-    bullet_points = "\n".join([f"- {sentence.strip()}" for sentence in sentences if sentence.strip()])
-    return bullet_points
+    # bullet_points = "\n".join([f"- {sentence.strip()}" for sentence in sentences if sentence.strip()])
+    # return bullet_points
+
+    return summary
 
 def read_word_blacklist(filename="includes/blacklist-words.txt"):
     with open(filename, 'r') as file:
