@@ -101,18 +101,6 @@ def read_domain_blacklist(filename="includes/blacklist-domains.txt"):
         blacklist = [line.strip() for line in file]
     return blacklist
 
-def format_as_bullet_points(summary):
-    # summary = summary.lstrip('-').strip()  # Remove leading '-' and strip any whitespace
-
-    # Split the summary into sentences
-    # sentences = summary.split("[BREAK]")
-    
-    # Convert sentences into bullet points
-    # bullet_points = "\n".join([f"- {sentence.strip()}" for sentence in sentences if sentence.strip()])
-    # return bullet_points
-
-    return summary
-
 def read_word_blacklist(filename="includes/blacklist-words.txt"):
     with open(filename, 'r') as file:
         blacklist = [line.strip() for line in file]
@@ -124,8 +112,8 @@ from transformers import BartTokenizer, BartForConditionalGeneration
 
 # Initialize the BART model and tokenizer
 MODEL_NAME = "facebook/bart-large-cnn"
-tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
-model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
+TOKENIZER = BartTokenizer.from_pretrained(MODEL_NAME)
+MODEL = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
 
 def extract_content_with_bs(url):
     """
@@ -145,19 +133,26 @@ def extract_content_with_bs(url):
     return title + "\n" + content
 
 def get_summary(url):
-    """
-    Gets the summary of an article
-    """
-    # Extract content using BeautifulSoup
-    article_content = extract_content_with_bs(url)
+    try:
+        # Fetch the article's content
+        response = requests.get(url)
+        response.raise_for_status()
 
-    # Summarize using BART
-    inputs = tokenizer.encode("summarize: " + article_content, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        # Use BeautifulSoup to extract the article's content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        paragraphs = soup.find_all('p')
+        article = "\n".join([para.text for para in paragraphs])
 
-    return summary
+        # Use the BART model to generate a summary
+        inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
+        summary_ids = MODEL.generate(inputs.input_ids, num_beams=4, length_penalty=2.0, max_length=250, min_length=50, no_repeat_ngram_size=2)
+        summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
 
+        return summary
+
+    except Exception as e:
+        logging.error(f"Error in generating summary for URL: {url}. Error: {e}")
+        return None
 
 def get_latest_posts(username, community):
     last_timestamp = get_last_timestamp(community) or datetime.min
@@ -186,8 +181,7 @@ def get_latest_posts(username, community):
 
                     if summary:
                         # Convert the summary into bullet points
-                        formatted_summary = format_as_bullet_points(summary)
-                        response = f"{canned_message_header}\n{formatted_summary}\n{canned_message_footer}"
+                        response = f"{canned_message_header}\n\n{summary}\n\n{canned_message_footer}"
                         r = post_reply(post_id, response)
                         if r:
                             print("Posted: " + post_id)
