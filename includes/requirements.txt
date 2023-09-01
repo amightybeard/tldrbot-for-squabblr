@@ -1,2 +1,5 @@
 requests
 trafilatura
+beautifulsoup4==4.9.3
+transformers==4.5.1
+torch==1.8.1
