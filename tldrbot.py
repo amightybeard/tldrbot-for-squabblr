@@ -47,31 +47,25 @@ def post_reply(post_id, summary):
 from io import StringIO
 
 def get_last_timestamp(community_name):
-    resp = requests.get(f'https://api.github.com/gists/{GIST_ID}', headers={'Authorization': f'token {GIST_TOKEN}'})
-    data = resp.json()
-
-    # Check if the response contains the 'files' key
-    if 'files' in data and FILE_NAME in data['files']:
-        csv_content = data['files'][FILE_NAME]['content']
-        csv_content_decoded = base64.b64decode(csv_content).decode('utf-8')
+    """
+    Get the last timestamp for a specific community from the CSV in the Gist.
+    """
+    logging.info(f"Fetching last timestamp for community: {community_name}")
     
-    else:
-        print("Error: 'files' key not found in GitHub API response or file not present in Gist.")
-        return
+    # Use the raw URL to fetch the file content directly
+    raw_gist_url = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
+    response = requests.get(raw_gist_url)
+    if response.status_code != 200:
+        logging.error(f"Failed to fetch CSV from Gist. Status code: {response.status_code}")
+        return None
 
+    csv_content = response.text  # Get the CSV content directly
     
-    # Use StringIO to treat the CSV string as a file-like object
-    csv_file = StringIO(csv_content)
-    csv_reader = csv.DictReader(csv_file)
-    
-    latest_timestamp = datetime.strptime('2000-01-01T00:00:00.000000Z', '%Y-%m-%dT%H:%M:%S.%fZ')  # Default timestamp
-    for row in csv_reader:
-        if row["Community"] == community_name:
-            timestamp = datetime.strptime(row["Post Created Date"], '%Y-%m-%dT%H:%M:%S.%fZ')
-            if timestamp > latest_timestamp:
-                latest_timestamp = timestamp
-
-    return latest_timestamp
+    reader = csv.DictReader(io.StringIO(csv_content))
+    for row in reader:
+        if row['Community'] == community_name:
+            return datetime.strptime(row['Post Created Date'], DATE_FORMAT)
+    return None
 
 def save_last_timestamp(community, post_url, timestamp):
     logging.info(f"Saving last timestamp for community: {community}")
