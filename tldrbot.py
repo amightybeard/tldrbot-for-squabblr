@@ -171,33 +171,39 @@ def get_latest_posts(username, community):
     for post in data.get('data', []):
         created_at = post['created_at']
         post_date = datetime.strptime(created_at, DATE_FORMAT)
+
+        # Check post type and skip if it's an image
+        post_type = post.get("url_meta", {}).get("type")
+        if post_type == "image":
+            logging.info(f"Skipping post with ID: {post['hash_id']} as it is an image.")
+            continue
+
         if post_date > last_timestamp:
             post_id = post['hash_id']
             logging.info(f"New post found with ID: {post_id} and date: {post_date}")
-            
             if post.get("url_meta"):
                 url = post["url_meta"].get("url")
                 post_domain = urlparse(url).netloc
-                
                 if post_domain in domain_blacklist:
-                    logging.info(f"Skipping post with ID: {post_id} due to blacklisted domain: {post_domain}")
                     continue  # Skip this post if its domain is blacklisted
-                
                 if url:
                     summary = get_summary(url)
-                    if not summary:
-                        logging.error(f"Failed to generate summary for post with ID: {post_id}")
-                        continue
-                    
-                    # Convert the summary into bullet points
-                    response = f"{canned_message_header}\n\n{summary}\n\n{canned_message_footer}"
-                    r = post_reply(post_id, response)
-                    if r:
-                        logging.info(f"Posted summary for post ID: {post_id}")
-                        # Save the post details to the CSV
-                        save_last_timestamp(community, post["url"], post_date)
-                    else:
-                        logging.error(f"Failed to post summary for post with ID: {post_id}")
+
+                    # word_blacklist = read_word_blacklist()
+                    # for word in word_blacklist:
+                        # summary = summary.replace(word, "")  # Remove blacklisted words/phrases from the summary
+
+                    if summary:
+                        # Convert the summary into bullet points
+                        response = f"{canned_message_header}\n\n{summary}\n\n{canned_message_footer}"
+                        r = post_reply(post_id, response)
+                        if r:
+                            print("Posted: " + post_id)
+                            # Save the post details to the CSV
+                            save_last_timestamp(community, post["url"], post_date)
+                        else:
+                            print(post)
+                            print("Failed Posting: " + post_id)
             else:
                 logging.info(f"No new post since the last timestamp: {last_timestamp}")
 
