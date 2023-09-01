@@ -73,10 +73,19 @@ def get_last_timestamp(community_name):
 
     csv_content = response.text  # Get the CSV content directly
     
+    # Log a snippet of the fetched CSV content
+    logging.info(f"CSV content snippet: {csv_content[:100]}...")
+
+    # Begin search in CSV content
+    logging.info(f"Searching CSV for timestamp of community: {community_name}")
+
     reader = csv.DictReader(io.StringIO(csv_content))
     for row in reader:
         if row['Community'] == community_name:
             return datetime.strptime(row['Post Created Date'], DATE_FORMAT)
+    
+    # Community not found in the CSV
+    logging.warning(f"Community '{community_name}' not found in the CSV.")
     return None
 
 def save_last_timestamp(community, post_url, timestamp):
@@ -124,23 +133,46 @@ def extract_content_with_bs(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
+    
+    # Log the initiation of the request
+    logging.info(f"Initiating request to URL: {url}")
+    
     response = requests.get(url, headers=headers)
+    
+    # Log the response status code
+    logging.info(f"Received response with status code: {response.status_code}")
+
+    # Start parsing with BeautifulSoup
+    logging.info(f"Starting content extraction for URL: {url}")
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Extract title
     title = soup.title.string if soup.title else ""
+    
+    # Log if the title was found or not
+    if title:
+        logging.info(f"Title found for URL: {url} - '{title}'")
+    else:
+        logging.warning(f"No title found for URL: {url}")
 
     # Extract main content based on common tags used for main article content
     content_tags = ['p']
     content = [tag.get_text() for tag in soup.find_all(content_tags)]
+    
+    # Log the number of paragraphs/content tags found
+    logging.info(f"Found {len(content)} paragraphs/content tags for URL: {url}")
+
     content = "\n".join(content)
+
+    # Log a snippet of the extracted content
+    logging.info(f"Content snippet for URL: {url} - '{content[:100]}...'")
 
     return title + "\n" + content
 
 def get_summary(url):
     try:
         response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()  # This will raise an HTTPError if the HTTP request returned an unsuccessful status code
+        response.raise_for_status()
 
         # Check the response
         if response.status_code != 200:
@@ -151,6 +183,9 @@ def get_summary(url):
         paragraphs = soup.find_all('p')
         article = "\n".join([para.text for para in paragraphs])
 
+        # Log a snippet of the content
+        logging.info(f"Content snippet from URL {url}: {article[:100]}...")
+
         # Check the parsed content
         if not article or len(article.strip()) == 0:
             logging.error(f"No valid content fetched from URL: {url}")
@@ -158,22 +193,29 @@ def get_summary(url):
 
         inputs = TOKENIZER([article], max_length=2048, return_tensors='pt', truncation=True)
 
+        # Log the tokenized inputs
+        logging.info(f"Tokenized inputs from URL {url}: {str(inputs)[:100]}...")
+
         # Check the tokenization results
         if not inputs or not hasattr(inputs, 'input_ids') or len(inputs.input_ids) == 0:
             logging.error(f"Failed to tokenize content from URL: {url}")
             return None
 
         summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
+        
+        # Log the number of summary IDs generated
+        logging.info(f"Number of summary IDs generated for URL {url}: {len(summary_ids)}")
+
         if len(summary_ids) == 0:
             logging.error(f"Failed to generate summary IDs for URL: {url}. Model returned empty IDs.")
             return None
+
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
         
         return summary
     except Exception as e:
         logging.error(f"Error in generating summary for URL: {url}. Error: {e}")
         return None
-
 
 def get_latest_posts(username, community):
     last_timestamp = get_last_timestamp(community) or datetime.min
