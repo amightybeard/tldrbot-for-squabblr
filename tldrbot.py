@@ -118,26 +118,46 @@ def read_word_blacklist(filename="includes/blacklist-words.txt"):
         blacklist = [line.strip() for line in file]
     return blacklist
 
-def get_summary(article_url):
-    """
-    Fetches the article content from the given URL and generates a summary using HuggingFace's model.
-    """
-    # Load the BART model and tokenizer for summarization
-    model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-    tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+from bs4 import BeautifulSoup
+import requests
+from transformers import BartTokenizer, BartForConditionalGeneration
 
-    # Fetch the article content using BeautifulSoup
-    response = requests.get(article_url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    paragraphs = soup.find_all('p')
-    article_content = " ".join([p.text for p in paragraphs])
+# Initialize the BART model and tokenizer
+MODEL_NAME = "facebook/bart-large-cnn"
+tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
+model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
 
-    # Encode the article content and generate the summary using HuggingFace's model
+def extract_content_with_bs(url):
+    """
+    Extracts main content of an article using BeautifulSoup
+    """
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # Extract title
+    title = soup.title.string if soup.title else ""
+
+    # Extract main content based on common tags used for main article content
+    content_tags = ['p']
+    content = [tag.get_text() for tag in soup.find_all(content_tags)]
+    content = "\n".join(content)
+
+    return title + "\n" + content
+
+def get_summary(url):
+    """
+    Gets the summary of an article
+    """
+    # Extract content using BeautifulSoup
+    article_content = extract_content_with_bs(url)
+
+    # Summarize using BART
     inputs = tokenizer.encode("summarize: " + article_content, return_tensors="pt", max_length=1024, truncation=True)
     summary_ids = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
     return summary
+
 
 def get_latest_posts(username, community):
     last_timestamp = get_last_timestamp(community) or datetime.min
