@@ -2,7 +2,7 @@ import requests
 import os
 import json
 import logging
-import base64
+import io
 from urllib.parse import urlparse
 import csv
 from bs4 import BeautifulSoup
