@@ -172,8 +172,14 @@ def get_latest_posts(username, community):
         created_at = post['created_at']
         post_date = datetime.strptime(created_at, DATE_FORMAT)
 
+        # Check if url_meta exists and is not None
+        url_meta = post.get("url_meta")
+        if not url_meta:
+            logging.warning(f"Post with ID: {post['hash_id']} lacks 'url_meta'. Skipping.")
+            continue
+
         # Check post type and skip if it's an image
-        post_type = post.get("url_meta", {}).get("type")
+        post_type = url_meta.get("type")
         if post_type == "image":
             logging.info(f"Skipping post with ID: {post['hash_id']} as it is an image.")
             continue
