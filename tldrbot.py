@@ -2,6 +2,7 @@ import requests
 import os
 import json
 import logging
+import base64
 from urllib.parse import urlparse
 import csv
 from bs4 import BeautifulSoup
@@ -144,7 +145,7 @@ def get_summary(article_url):
     return summary
 
 def get_latest_posts(username, community):
-    last_timestamp = get_last_timestamp(community)
+    last_timestamp = get_last_timestamp(community) or datetime.min
     data = requests.get(f'https://squabblr.co/api/s/{community}/posts?page=1&sort=new&').json()
     logging.info(f"Checking posts for community: {community}")
 
