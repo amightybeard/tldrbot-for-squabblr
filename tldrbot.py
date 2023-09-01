@@ -9,13 +9,13 @@ from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
-
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
 GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
 GIST_ID = 'fd0e432ea9f3f7d1869ea7a52e26d6fe'
 FILE_NAME = 'tldrbot-timestamp.csv'
 CSV_PATH = 'includes/communities.csv'
+DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+logging.basicConfig(level=logging.INFO)
 
 canned_message_header = """
 This is the best TL;DR I could come up with for this article:
