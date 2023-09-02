@@ -224,11 +224,12 @@ def get_latest_posts():
                 summary = get_summary(content)
                 if summary:
                     r = post_reply(post['hash_id'], summary)
-                    if r.get('success', False):
+                    if 'id' in r:
                         logging.info(f"Successfully posted a reply for post ID: {post['hash_id']}")
                         save_processed_id(community, post_id)
                     else:
                         logging.warning(f"Failed to post a reply for post ID: {post['hash_id']}.")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
