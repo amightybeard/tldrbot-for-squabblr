@@ -45,16 +45,19 @@ def post_reply(post_id, summary):
     headers = {
         'authorization': 'Bearer ' + SQUABBLES_TOKEN
     }
+    
+    full_summary = canned_message_header + summary + canned_message_footer
+
     resp = requests.post(f'https://squabblr.co/api/posts/{post_id}/reply', data={
-        "content": summary
+        "content": full_summary
     }, headers=headers)
     
-    if resp.status_code == 200:
+    if resp.status_code in [200, 201]:
         logging.info(f"Successfully posted a reply for post ID: {post_id}")
     else:
         logging.warning(f"Failed to post a reply for post ID: {post_id}.")
 
-     # Log the response status and content
+    # Log the response status and content
     logging.info(f"Response status from Squabblr API when posting reply: {resp.status_code}")
     logging.info(f"Response content from Squabblr API when posting reply: {resp.text}")
     
