@@ -55,8 +55,8 @@ def post_reply(post_id, summary):
         logging.warning(f"Failed to post a reply for post ID: {post_id}.")
 
      # Log the response status and content
-    logging.info(f"Response status from Squabblr API when posting reply: {response.status_code}")
-    logging.info(f"Response content from Squabblr API when posting reply: {response.text}")
+    logging.info(f"Response status from Squabblr API when posting reply: {resp.status_code}")
+    logging.info(f"Response content from Squabblr API when posting reply: {resp.text}")
     
     return resp.json()
 
