@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.INFO)
 
 # Constants
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
-GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
-GIST_ID = os.environ.get('TLDRBOT_GIST')
+GIST_TOKEN =  os.environ.get('GITHUB_TOKEN')
+GIST_ID = 'fd0e432ea9f3f7d1869ea7a52e26d6fe' # os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot-processed-ids.json'
 CSV_PATH = 'includes/communities.csv'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
