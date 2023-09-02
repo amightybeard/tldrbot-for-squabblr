@@ -229,7 +229,7 @@ def get_latest_posts():
             logging.warning(f"Failed to fetch posts for community: {community}")
             continue
 
-        posts = response.json()
+        posts = response.json()["data"]
         for post in posts:
             post_id = post['id']
 
