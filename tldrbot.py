@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 # Constants
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
 GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
-GIST_ID = os.environ.get('TLDR_GIST')
+GIST_ID = os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot-timestamp.csv'
 CSV_PATH = 'includes/communities.csv'
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
