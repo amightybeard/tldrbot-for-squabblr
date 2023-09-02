@@ -41,29 +41,24 @@ canned_message_footer = """
 I am a bot. Submit feedback to the /s/ModBot.
 """
 
-def post_reply(post_id, content):
-    """
-    Posts a reply to a specific squabble (post) on Squabblr.
-    """
-    reply_url = f"https://api.squabblr.co/v1/squabble/{post_id}/reply"
-
-    payload = {
-        "content": content
-    }
-
+def post_reply(post_id, summary):
     headers = {
-        "Authorization": f"Bearer {SQUABBLES_TOKEN}",
-        "Content-Type": "application/json"
+        'authorization': 'Bearer ' + SQUABBLES_TOKEN
     }
+    resp = requests.post(f'https://squabblr.co/api/posts/{post_id}/reply', data={
+        "content": summary
+    }, headers=headers)
+    
+    if resp.status_code == 200:
+        logging.info(f"Successfully posted a reply for post ID: {post_id}")
+    else:
+        logging.warning(f"Failed to post a reply for post ID: {post_id}.")
 
-    response = requests.post(reply_url, headers=headers, json=payload)
-
-    # Log the response status and content
+     # Log the response status and content
     logging.info(f"Response status from Squabblr API when posting reply: {response.status_code}")
     logging.info(f"Response content from Squabblr API when posting reply: {response.text}")
-
-    return response
-
+    
+    return resp.json()
 
 from io import StringIO
 
