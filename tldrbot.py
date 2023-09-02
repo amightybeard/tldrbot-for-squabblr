@@ -38,7 +38,7 @@ canned_message_footer = """
 
 -----
 
-I am a bot. Submit feedback to the /s/ModBot.
+I am a bot. Post feedback to /s/ModBot.
 """
 
 def post_reply(post_id, summary):
