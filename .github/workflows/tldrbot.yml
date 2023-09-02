@@ -34,3 +34,4 @@ jobs:
       env:
         SQUABBLES_TOKEN: ${{ secrets.SQUABBLES_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.WRITE_TO_TIMESTAMP }}
+        TLDRBOT_GIST: ${{ secrets.TLDRBOT_GIST }}
