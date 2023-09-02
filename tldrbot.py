@@ -256,7 +256,7 @@ def get_latest_posts():
             logging.info(f"New post found with ID: {post_id} in community: {community}")
 
             content = extract_content_with_bs(url)
-            summary = generate_summary(content)
+            summary = get_summary(content)
             if summary:
                 r = post_reply(post['hash_id'], summary)
                 if r.get('success', False):
