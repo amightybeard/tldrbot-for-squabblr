@@ -144,52 +144,35 @@ def extract_content_with_bs(url):
 
     return title + "\n" + content
 
-def get_summary(url):
+def get_summary(article):
     try:
-        logging.info(f"Starting the summary generation for URL: {url}")
-        
-        response = requests.get(url, headers=HEADERS)
-        response.raise_for_status()
-
-        if response.status_code != 200:
-            logging.error(f"Failed to fetch content from URL: {url}. Status code: {response.status_code}")
-            return None
-
-        soup = BeautifulSoup(response.content, 'html.parser')
-        paragraphs = soup.find_all('p')
-        article = "\n".join([para.text for para in paragraphs])
-
-        logging.info(f"Content fetched and parsed from URL {url}")
+        logging.info(f"Starting the summary generation for article content")
 
         if not article or len(article.strip()) == 0:
-            logging.error(f"No valid content fetched from URL: {url}")
+            logging.error(f"No valid content provided.")
             return None
 
         inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
 
-        logging.info(f"Content tokenized from URL {url}. Input IDs length: {len(inputs['input_ids'][0])}")
+        logging.info(f"Content tokenized.")
 
-        # Ensure the tokenized input does not exceed the model's maximum input size
-        model_input_size = MODEL.config.max_position_embeddings
-        if len(inputs['input_ids'][0]) > model_input_size:
-            logging.warning(f"Tokenized input exceeds model's max input size for URL {url}. Truncating...")
-            inputs['input_ids'] = inputs['input_ids'][:, :model_input_size]
-            inputs['attention_mask'] = inputs['attention_mask'][:, :model_input_size]
+        if not inputs or not hasattr(inputs, 'input_ids') or len(inputs.input_ids) == 0:
+            logging.error(f"Failed to tokenize content.")
+            return None
 
-        logging.info(f"Starting the model generation process for URL {url}")
-
+        logging.info(f"Starting the model generation process.")
         summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
 
         if len(summary_ids) == 0:
-            logging.error(f"Failed to generate summary IDs for URL: {url}. Model returned empty IDs.")
+            logging.error(f"Failed to generate summary IDs. Model returned empty IDs.")
             return None
 
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
-        logging.info(f"Summary generated for URL {url}")
+        logging.info(f"Summary generated.")
 
         return summary
     except Exception as e:
-        logging.error(f"Error in generating summary for URL: {url}. Error: {e}")
+        logging.error(f"Error in generating summary. Error: {e}")
         return None
 
 
@@ -234,14 +217,15 @@ def get_latest_posts():
             logging.info(f"New post found with ID: {post_id} in community: {community}")
 
             content = extract_content_with_bs(url)
-            summary = get_summary(content)
-            if summary:
-                r = post_reply(post['hash_id'], summary)
-                if r.get('success', False):
-                    logging.info(f"Successfully posted a reply for post ID: {post['hash_id']}")
-                    save_processed_id(community, post_id)
-                else:
-                    logging.warning(f"Failed to post a reply for post ID: {post['hash_id']}.")
+            if content:
+                summary = get_summary(content)
+                if summary:
+                    r = post_reply(post['hash_id'], summary)
+                    if r.get('success', False):
+                        logging.info(f"Successfully posted a reply for post ID: {post['hash_id']}")
+                        save_processed_id(community, post_id)
+                    else:
+                        logging.warning(f"Failed to post a reply for post ID: {post['hash_id']}.")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
