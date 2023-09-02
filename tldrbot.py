@@ -217,7 +217,7 @@ def get_summary(url):
 
 def get_latest_posts():
     processed_ids = fetch_last_processed_ids()
-    domain_blacklist = load_domain_blacklist()
+    domain_blacklist = read_domain_blacklist()
 
     for community, data in processed_ids.items():
         last_processed_id = data['last_processed_id']
