@@ -167,13 +167,17 @@ def get_summary(url):
 
         inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
 
-        logging.info(f"Content tokenized from URL {url}")
+        logging.info(f"Content tokenized from URL {url}. Input IDs length: {len(inputs['input_ids'][0])}")
 
-        if not inputs or not hasattr(inputs, 'input_ids') or len(inputs.input_ids) == 0:
-            logging.error(f"Failed to tokenize content from URL: {url}")
-            return None
+        # Ensure the tokenized input does not exceed the model's maximum input size
+        model_input_size = MODEL.config.max_position_embeddings
+        if len(inputs['input_ids'][0]) > model_input_size:
+            logging.warning(f"Tokenized input exceeds model's max input size for URL {url}. Truncating...")
+            inputs['input_ids'] = inputs['input_ids'][:, :model_input_size]
+            inputs['attention_mask'] = inputs['attention_mask'][:, :model_input_size]
 
         logging.info(f"Starting the model generation process for URL {url}")
+
         summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
 
         if len(summary_ids) == 0:
