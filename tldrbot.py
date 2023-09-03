@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Constants
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
-GIST_TOKEN =  os.environ.get('GITHUB_TOKEN')
+GIST_TOKEN =  os.environ.get('TLDRBOT_WRITE')
 GIST_ID = os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot.json'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
