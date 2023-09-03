@@ -80,9 +80,7 @@ def save_processed_id(community, post_id):
     data[community]['last_processed_id'] = post_id
     
     headers = {
-        'Authorization': f'token {GIST_ID}',
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
+        'Authorization': f'token {GIST_ID}'
     }
     
     payload = {
