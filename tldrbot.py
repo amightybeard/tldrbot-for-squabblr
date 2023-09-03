@@ -13,10 +13,9 @@ logging.basicConfig(level=logging.INFO)
 
 # Constants
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
-GIST_TOKEN =  os.environ.get('GITHUB_TOKEN')
-GIST_ID = '238be30a8e10b4e0942a8994f20e1a4b' # os.environ.get('TLDRBOT_GIST')
-FILE_NAME = 'tldrbot-processed.json'
-CSV_PATH = 'includes/communities.csv'
+GIST_TOKEN =  os.environ.get('TLDRBOT_WRITE')
+GIST_ID = os.environ.get('TLDRBOT_GIST')
+FILE_NAME = 'tldrbot.json'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 HEADERS = {
@@ -80,7 +79,9 @@ def save_processed_id(community, post_id):
     data[community]['last_processed_id'] = post_id
     
     headers = {
-        'Authorization': f'token {GIST_ID}'
+        'Authorization': f'token {GIST_TOKEN}',
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
     }
     
     payload = {
@@ -95,7 +96,7 @@ def save_processed_id(community, post_id):
         resp = requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
         resp.raise_for_status()
     except requests.RequestException as e:
-        logging.error(f"Failed to update processed ID for {community}. Error: {e}")
+        logging.error(f"Failed to update processed ID for {community}. Error: {e}. Resp: {resp}")
 
 def read_domain_blacklist(filename="includes/blacklist-domains.txt"):
     with open(filename, 'r') as file:
