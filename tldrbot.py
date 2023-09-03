@@ -164,7 +164,7 @@ def get_summary(article):
             return None
 
         logging.info(f"Starting the model generation process.")
-        summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, length_penalty=1.0, max_length=500, min_length=100, no_repeat_ngram_size=2)
+        summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, repetition_penalty=2.0, length_penalty=1.2, max_length=800, min_length=100, no_repeat_ngram_size=2)
 
         if len(summary_ids) == 0:
             logging.error(f"Failed to generate summary IDs. Model returned empty IDs.")
