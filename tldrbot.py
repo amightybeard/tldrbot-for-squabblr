@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
+import re
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -102,7 +103,11 @@ def read_domain_blacklist(filename="includes/blacklist-domains.txt"):
     with open(filename, 'r') as file:
         blacklist = [line.strip() for line in file]
     return blacklist
-
+    
+def split_into_sentences(text):
+    # Use regular expression to split sentences by common punctuation used at the end of sentences
+    return re.split(r'(?<=[.!?])\s+', text)
+    
 def extract_content_with_bs(url):
     """
     Extracts main content of an article using BeautifulSoup
