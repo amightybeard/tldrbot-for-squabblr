@@ -30,6 +30,7 @@ jobs:
       run: |
         pip install -r includes/requirements.txt
         pip install packaging --upgrade
+        pip install scikit-learn
 
     - name: Squabblr TLDRBot
       run: python tldrbot.py
