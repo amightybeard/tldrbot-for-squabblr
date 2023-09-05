@@ -42,15 +42,13 @@ canned_message_footer = """
 I am a bot. Post feedback to /s/ModBot.
 """
 
-def post_reply(post_id, summary):
+def post_reply(post_id, content):
     headers = {
         'authorization': 'Bearer ' + SQUABBLES_TOKEN
     }
     
-    full_summary = canned_message_header + summary + canned_message_footer
-
     resp = requests.post(f'https://squabblr.co/api/posts/{post_id}/reply', data={
-        "content": full_summary
+        "content": content
     }, headers=headers)
     
     if resp.status_code in [200, 201]:
@@ -190,7 +188,7 @@ def get_summary(article):
         logging.error(f"Error in generating summary. Error: {e}")
         return None
 
-def get_main_points(text, num_points=5):
+def get_main_points(text, num_points=5, max_length=150):
     # Tokenize the article into sentences
     sentences = split_into_sentences(text)
     
@@ -203,9 +201,17 @@ def get_main_points(text, num_points=5):
          for idx, sentence in enumerate(sentences)),
         reverse=True
     )
-
+    
     # Extract top n sentences as main points
-    main_points = [ranked_sentences[i][2] for i in range(min(num_points, len(ranked_sentences)))]
+    main_points = []
+    for i in range(min(num_points, len(ranked_sentences))):
+        sentence = ranked_sentences[i][2]
+        if len(sentence) <= max_length:  # If the sentence is short enough, use it as-is
+            main_points.append(sentence)
+        else:
+            # If the sentence is long, truncate it
+            truncated = sentence[:max_length-3] + "..."
+            main_points.append(truncated)
 
     return main_points
 
@@ -254,7 +260,7 @@ def get_latest_posts():
                 summary, main_points = get_summary(content)
                 if summary and main_points:
                     r = post_reply(post['hash_id'], summary)
-                    final_reply = f"{canned_message_header}\n{summary}\n\nMain Points:\n" + "\n".join([f"- {point}" for point in main_points]) + f"\n{canned_message_footer}"
+                    final_reply = f"{canned_message_header}\n{summary}\n\n**Main Points**:\n" + "\n".join([f"- {point}" for point in main_points]) + f"\n{canned_message_footer}"
                     post_reply(post['hash_id'], final_reply)
 
                     if 'id' in r:
