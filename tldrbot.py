@@ -197,21 +197,13 @@ def get_main_points(text, num_points=5, max_length=150):
     
     # Score sentences based on word frequency
     ranked_sentences = sorted(
-        ((sum(word_freq[word] for word in re.findall(r'\w+', sentence.lower())), idx, sentence)
-         for idx, sentence in enumerate(sentences)),
+        ((sum(word_freq[word] for word in re.findall(r'\w+', sentence.lower())), -len(sentence), sentence)
+         for sentence in sentences),
         reverse=True
     )
     
-    # Extract top n sentences as main points
-    main_points = []
-    for i in range(min(num_points, len(ranked_sentences))):
-        sentence = ranked_sentences[i][2]
-        if len(sentence) <= max_length:  # If the sentence is short enough, use it as-is
-            main_points.append(sentence)
-        else:
-            # If the sentence is long, truncate it
-            truncated = sentence[:max_length-3] + "..."
-            main_points.append(truncated)
+    # Extract top n sentences as main points while ensuring they're below the max length
+    main_points = [sentence for _, _, sentence in ranked_sentences if len(sentence) <= max_length][:num_points]
 
     return main_points
 
@@ -259,9 +251,9 @@ def get_latest_posts():
             if content:
                 summary, main_points = get_summary(content)
                 if summary and main_points:
-                    r = post_reply(post['hash_id'], summary)
+                    # r = post_reply(post['hash_id'], summary)
                     final_reply = f"{canned_message_header}\n{summary}\n\n**Main Points**:\n" + "\n".join([f"- {point}" for point in main_points]) + f"\n{canned_message_footer}"
-                    post_reply(post['hash_id'], final_reply)
+                    r = post_reply(post['hash_id'], final_reply)
 
                     if 'id' in r:
                         logging.info(f"Successfully posted a reply for post ID: {post['hash_id']}")
