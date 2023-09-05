@@ -9,6 +9,7 @@ from transformers import BartForConditionalGeneration, BartTokenizer
 from datetime import datetime
 import re
 from collections import Counter
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -188,22 +189,25 @@ def get_summary(article):
         logging.error(f"Error in generating summary. Error: {e}")
         return None
 
-def get_main_points(text, num_points=5, max_length=150):
+def get_main_points(text, num_points=5):
     # Tokenize the article into sentences
     sentences = split_into_sentences(text)
     
-    # Tokenize each sentence into words and count word frequency
-    word_freq = Counter(re.findall(r'\w+', text.lower()))
+    # Use TF-IDF to rank sentences
+    vectorizer = TfidfVectorizer(stop_words="english", max_df=0.85)
+    tfidf_matrix = vectorizer.fit_transform(sentences)
+    # Sum the TF-IDF scores for each sentence
+    sentence_scores = tfidf_matrix.sum(axis=1).flatten().tolist()
     
-    # Score sentences based on word frequency
-    ranked_sentences = sorted(
-        ((sum(word_freq[word] for word in re.findall(r'\w+', sentence.lower())), -len(sentence), sentence)
-         for sentence in sentences),
-        reverse=True
-    )
+    # Rank sentences based on their TF-IDF scores
+    ranked_sentences = sorted([(score, idx, sentence) for idx, (sentence, score) in enumerate(zip(sentences, sentence_scores))], reverse=True)
+
+    # Extract top n sentences as main points
+    selected_points = ranked_sentences[:num_points]
     
-    # Extract top n sentences as main points while ensuring they're below the max length
-    main_points = [sentence for _, _, sentence in ranked_sentences if len(sentence) <= max_length][:num_points]
+    # Reorder the selected main points based on their appearance in the original article
+    ordered_points = sorted(selected_points, key=lambda x: x[1])
+    main_points = [point[2] for point in ordered_points]
 
     return main_points
 
