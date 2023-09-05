@@ -172,11 +172,36 @@ def get_summary(article):
         summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
         logging.info(f"Summary generated.")
 
-        return summary
+        # Extract main points
+        main_points = get_main_points(article)
+        
+        # Remove points that are very similar to the summary
+        main_points = [point for point in main_points if point not in summary]
+    
+        return summary, main_points
+
     except Exception as e:
         logging.error(f"Error in generating summary. Error: {e}")
         return None
 
+def get_main_points(text, num_points=5):
+    # Tokenize the article into sentences
+    sentences = split_into_sentences(text)
+    
+    # Tokenize each sentence into words and count word frequency
+    word_freq = Counter(re.findall(r'\w+', text.lower()))
+    
+    # Score sentences based on word frequency
+    ranked_sentences = sorted(
+        ((sum(word_freq[word] for word in re.findall(r'\w+', sentence.lower())), idx, sentence)
+         for idx, sentence in enumerate(sentences)),
+        reverse=True
+    )
+
+    # Extract top n sentences as main points
+    main_points = [ranked_sentences[i][2] for i in range(min(num_points, len(ranked_sentences)))]
+
+    return main_points
 
 def get_latest_posts():
     processed_ids = fetch_last_processed_ids()
@@ -217,12 +242,14 @@ def get_latest_posts():
                 continue
 
             logging.info(f"New post found with ID: {post_id} in community: {community}")
-
             content = extract_content_with_bs(url)
+            
             if content:
-                summary = get_summary(content)
-                if summary:
-                    r = post_reply(post['hash_id'], summary)
+                summary, main_points = get_summary(content)
+                if summary and main_points:
+                    final_reply = f"{canned_message_header}\n{summary}\n\nMain Points:\n" + "\n".join([f"- {point}" for point in main_points]) + f"\n{canned_message_footer}"
+                    post_reply(post['hash_id'], final_reply)
+
                     if 'id' in r:
                         logging.info(f"Successfully posted a reply for post ID: {post['hash_id']}")
                         save_processed_id(community, post_id)
