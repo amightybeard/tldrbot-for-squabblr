@@ -253,6 +253,7 @@ def get_latest_posts():
             if content:
                 summary, main_points = get_summary(content)
                 if summary and main_points:
+                    r = post_reply(post['hash_id'], summary)
                     final_reply = f"{canned_message_header}\n{summary}\n\nMain Points:\n" + "\n".join([f"- {point}" for point in main_points]) + f"\n{canned_message_footer}"
                     post_reply(post['hash_id'], final_reply)
 
