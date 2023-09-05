@@ -138,7 +138,7 @@ def extract_content_with_bs(url):
         logging.warning(f"No title found for URL: {url}")
 
     # Extract main content based on common tags used for main article content
-    content_tags = ['p','ol','ul']
+    content_tags = ['p']
     content = [tag.get_text() for tag in soup.find_all(content_tags)]
     
     # Log the number of paragraphs/content tags found
