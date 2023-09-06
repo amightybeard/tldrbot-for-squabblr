@@ -128,6 +128,12 @@ def extract_content_with_bs(url):
     logging.info(f"Starting content extraction for URL: {url}")
     soup = BeautifulSoup(response.text, 'html.parser')
 
+    # Remove header and footer content
+    for header in soup.find_all('header'):
+        header.decompose()
+    for footer in soup.find_all('footer'):
+        footer.decompose()
+
     # Extract title
     title_tag = soup.find('title')
     title = title_tag.text if title_tag else ''
@@ -189,6 +195,11 @@ def generate_comprehensive_summary(content):
     
     # Combine the summaries
     combined_summary = ' '.join(summaries)
+
+    # Limit the combined summary to a maximum of 7 sentences
+    sentences = split_into_sentences(combined_summary)
+    if len(sentences) > 7:
+        combined_summary = ' '.join(sentences[:7])
 
     # Post-process the summary to remove irrelevant lines
     cleaned_summary = post_process_summary(combined_summary)
