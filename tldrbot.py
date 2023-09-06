@@ -163,7 +163,17 @@ def split_into_chunks(text, chunk_size=5):
     paragraphs = text.split('\n')
     chunks = [paragraphs[i:i+chunk_size] for i in range(0, len(paragraphs), chunk_size)]
     return ['\n'.join(chunk) for chunk in chunks]
+
+def generate_summary(text, max_length=150):
+    # Ensure the MODEL and TOKENIZER are available
+    global MODEL, TOKENIZER
     
+    inputs = TOKENIZER.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
+    outputs = MODEL.generate(inputs, max_length=max_length, min_length=50, length_penalty=5.0, num_beams=2, early_stopping=True)
+    summary = TOKENIZER.decode(outputs[0], skip_special_tokens=True)
+    
+    return summary
+
 def generate_comprehensive_summary(content):
     """
     Generate a summary by splitting the content into chunks and summarizing each chunk.
