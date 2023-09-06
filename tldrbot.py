@@ -156,6 +156,24 @@ def extract_content_with_bs(url):
 
     return full_content
 
+def split_into_chunks(text, chunk_size=5):
+    """
+    Split the content into chunks of given size.
+    """
+    paragraphs = text.split('\n')
+    chunks = [paragraphs[i:i+chunk_size] for i in range(0, len(paragraphs), chunk_size)]
+    return ['\n'.join(chunk) for chunk in chunks]
+    
+def generate_comprehensive_summary(content):
+    """
+    Generate a summary by splitting the content into chunks and summarizing each chunk.
+    """
+    chunks = split_into_chunks(content)
+    summaries = [generate_summary(chunk) for chunk in chunks]
+    
+    # Combine the summaries
+    return ' '.join(summaries)
+
 def get_summary(article):
     try:
         logging.info(f"Starting the summary generation for article content")
@@ -164,22 +182,8 @@ def get_summary(article):
             logging.error(f"No valid content provided.")
             return None
 
-        inputs = TOKENIZER([article], max_length=1024, return_tensors='pt', truncation=True)
-
-        logging.info(f"Content tokenized.")
-
-        if not inputs or not hasattr(inputs, 'input_ids') or len(inputs.input_ids) == 0:
-            logging.error(f"Failed to tokenize content.")
-            return None
-
-        logging.info(f"Starting the model generation process.")
-        summary_ids = MODEL.generate(inputs.input_ids, num_beams=6, repetition_penalty=2.0, length_penalty=1.2, max_length=800, min_length=100, no_repeat_ngram_size=2)
-
-        if len(summary_ids) == 0:
-            logging.error(f"Failed to generate summary IDs. Model returned empty IDs.")
-            return None
-
-        summary = TOKENIZER.decode(summary_ids[0], skip_special_tokens=True)
+        # Generate a comprehensive summary by handling the text in chunks.
+        summary = generate_comprehensive_summary(article)
         logging.info(f"Summary generated.")
 
         # Extract main points
@@ -192,7 +196,7 @@ def get_summary(article):
 
     except Exception as e:
         logging.error(f"Error in generating summary. Error: {e}")
-        return None
+        return None, None
 
 def get_main_points(text, num_points=5):
     """
@@ -201,8 +205,8 @@ def get_main_points(text, num_points=5):
     # Tokenize the article into sentences
     sentences = split_into_sentences(text)
     
-    # Use TF-IDF to rank sentences
-    tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.85, min_df=2)
+    # Use TF-IDF to rank sentences with tweaked parameters
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.9, min_df=3, ngram_range=(1,2))
     tfidf_matrix = tfidf_vectorizer.fit_transform(sentences)
     
     # Sum the TF-IDF scores for each sentence to get an overall score for the sentence
