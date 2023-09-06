@@ -138,6 +138,12 @@ def extract_content_with_bs(url):
     else:
         logging.warning(f"No title found for URL: {url}")
 
+    # Extract meta description
+    meta_description = ""
+    meta_tag = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", attrs={"property": "og:description"})
+    if meta_tag:
+        meta_description = meta_tag.attrs.get("content", "")
+
     # Extract main content based on common tags used for main article content
     content_tags = ['p']
     content_elements = soup.find_all(content_tags)
@@ -154,7 +160,7 @@ def extract_content_with_bs(url):
     logging.info(f"Found {len(content)} paragraphs/content tags for URL: {url}")
     logging.info(f"Content snippet for URL: {url} - '{full_content[:100]}...'")
 
-    return full_content
+    return full_content, title, meta_description
 
 def split_into_chunks(text, chunk_size=5):
     """
@@ -182,7 +188,22 @@ def generate_comprehensive_summary(content):
     summaries = [generate_summary(chunk) for chunk in chunks]
     
     # Combine the summaries
-    return ' '.join(summaries)
+    combined_summary = ' '.join(summaries)
+
+    # Post-process the summary to remove irrelevant lines
+    cleaned_summary = post_process_summary(combined_summary)
+
+    return cleaned_summary
+
+def post_process_summary(summary):
+    """
+    Post-process the summary to remove any irrelevant or out-of-context lines.
+    """
+    lines = summary.split('. ')
+    cleaned_lines = [line for line in lines if not line.startswith("summarize:")]
+    
+    return '. '.join(cleaned_lines)
+
 
 def get_summary(article):
     try:
@@ -269,9 +290,11 @@ def get_latest_posts():
                 continue
 
             logging.info(f"New post found with ID: {post_id} in community: {community}")
-            content = extract_content_with_bs(url)
             
+            content, title, meta_description = extract_content_with_bs(url)
+
             if content:
+                content = content.replace(title, '').replace(meta_description, '')
                 summary, main_points = get_summary(content)
                 if summary and main_points:
                     # r = post_reply(post['hash_id'], summary)
