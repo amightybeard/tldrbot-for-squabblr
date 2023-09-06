@@ -129,7 +129,8 @@ def extract_content_with_bs(url):
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Extract title
-    title = soup.title.string if soup.title else ""
+    title_tag = soup.find('title')
+    title = title_tag.text if title_tag else ''
     
     # Log if the title was found or not
     if title:
@@ -139,17 +140,21 @@ def extract_content_with_bs(url):
 
     # Extract main content based on common tags used for main article content
     content_tags = ['p']
-    content = [tag.get_text() for tag in soup.find_all(content_tags)]
+    content_elements = soup.find_all(content_tags)
+    
+    # Extract text from each content element and filter out short or irrelevant content
+    content = [el.text for el in content_elements if len(el.text.split()) > 5 and title not in el.text]
     
     # Log the number of paragraphs/content tags found
     logging.info(f"Found {len(content)} paragraphs/content tags for URL: {url}")
 
-    content = "\n".join(content)
+    # Join content and return
+    full_content = '\n'.join(content)
 
-    # Log a snippet of the extracted content
-    logging.info(f"Content snippet for URL: {url} - '{content[:100]}...'")
+    logging.info(f"Found {len(content)} paragraphs/content tags for URL: {url}")
+    logging.info(f"Content snippet for URL: {url} - '{full_content[:100]}...'")
 
-    return title + "\n" + content
+    return full_content
 
 def get_summary(article):
     try:
@@ -190,24 +195,24 @@ def get_summary(article):
         return None
 
 def get_main_points(text, num_points=5):
+    """
+    Extracts the main points from the given text using TF-IDF ranking.
+    """
     # Tokenize the article into sentences
     sentences = split_into_sentences(text)
     
     # Use TF-IDF to rank sentences
-    vectorizer = TfidfVectorizer(stop_words="english", max_df=0.85)
-    tfidf_matrix = vectorizer.fit_transform(sentences)
-    # Sum the TF-IDF scores for each sentence
-    sentence_scores = tfidf_matrix.sum(axis=1).flatten().tolist()
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.85, min_df=2)
+    tfidf_matrix = tfidf_vectorizer.fit_transform(sentences)
     
-    # Rank sentences based on their TF-IDF scores
-    ranked_sentences = sorted([(score, idx, sentence) for idx, (sentence, score) in enumerate(zip(sentences, sentence_scores))], reverse=True)
-
+    # Sum the TF-IDF scores for each sentence to get an overall score for the sentence
+    sentence_scores = tfidf_matrix.sum(axis=1).tolist()
+    
+    # Rank sentences based on their scores
+    ranked_sentences = [sentences[idx] for idx, score in sorted(enumerate(sentence_scores), key=lambda x: x[1], reverse=True)]
+    
     # Extract top n sentences as main points
-    selected_points = ranked_sentences[:num_points]
-    
-    # Reorder the selected main points based on their appearance in the original article
-    ordered_points = sorted(selected_points, key=lambda x: x[1])
-    main_points = [point[2] for point in ordered_points]
+    main_points = ranked_sentences[:num_points]
 
     return main_points
 
