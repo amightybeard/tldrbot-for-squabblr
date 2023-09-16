@@ -27,6 +27,11 @@ def fetch_new_posts(community_name, last_processed_id):
     new_posts = [post for post in posts if post['id'] > last_processed_id]
     return new_posts
 
+def load_domain_blacklist():
+    with open("includes/blacklist-domains.txt", "r") as file:
+        # Strip whitespace and filter out empty lines
+        return [line.strip() for line in file if line.strip()]
+
 def is_domain_blacklisted(url, blacklist):
     domain = url.split("//")[-1].split("/")[0]
     return domain in blacklist
