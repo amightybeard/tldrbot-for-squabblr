@@ -18,8 +18,9 @@ def fetch_gist_data():
     headers = {'Authorization': f'token {GIST_TOKEN}'}
     response = requests.get(GIST_URL, headers=headers)
     response.raise_for_status()
+    communities_data = response.json()
     print(f"Fetched data from Gist: {communities_data}")
-    return response.json()
+    return communities_data
 
 def fetch_new_posts(community_name, last_processed_id):
     response = requests.get(f'https://squabblr.co/api/s/{community_name}/posts?page=1&sort=new')
