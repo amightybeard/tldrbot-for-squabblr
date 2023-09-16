@@ -63,6 +63,7 @@ def generate_key_points(text):
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def send_reply(post_id, overview, key_points):
+    post_hash_id = post['hash_id']
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
     content = (
         "This is the best TL;DR I could put together from this article:\n\n"
@@ -74,7 +75,8 @@ def send_reply(post_id, overview, key_points):
         "-----\n\n"
         "I am a bot. Post feedback and suggestions to /s/ModBot. Want this bot in your community? DM @modbot with `!summarize community_name`."
     )
-    resp = requests.post(f'https://squabblr.co/api/posts/{post_id}/reply', data={"content": content}, headers=headers)
+    https://squabblr.co/api/posts/7voPpazpoJ/reply
+    resp = requests.post(f'https://squabblr.co/api/posts/{post_hash_id}/reply', data={"content": content}, headers=headers)
     resp.raise_for_status()
     return resp.json()
 
@@ -123,7 +125,7 @@ def main():
             overview = meta_description if meta_description else generate_overview(article_content)
             key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
-            send_reply(post["id"], overview, key_points)
+            send_reply(post, overview, key_points)
             print(f"Reply sent for post with ID {post['id']} for community {community['community']}")
             update_gist(community["community"], post["id"], communities_data)
 
