@@ -23,7 +23,8 @@ def fetch_gist_data():
 def fetch_new_posts(community_name, last_processed_id):
     response = requests.get(f'https://squabblr.co/api/s/{community_name}/posts?page=1&sort=new')
     response.raise_for_status()
-    posts = response.json()
+    posts_data = response.json()  # Ensure this is parsed as JSON
+    posts = posts_data if isinstance(posts_data, list) else []  # Ensure posts is a list
     new_posts = [post for post in posts if post['id'] > last_processed_id]
     return new_posts
 
@@ -60,7 +61,16 @@ def generate_key_points(text):
 
 def send_reply(post_id, overview, key_points):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
-    content = f"🔍 TL;DR Overview:\n{overview}\n\n📌 Key Points:\n{key_points}"
+    content = (
+        "This is the best TL;DR I could put together from this article:\n\n"
+        "-----\n\n"
+        "🔍 **Overview**:\n"
+        f"{overview}\n\n"
+        "📌 **Key Points**:\n"
+        f"{key_points}\n\n"
+        "-----\n\n"
+        "I am a bot. Post feedback and suggestions to /s/ModBot. Want this bot in your community? DM @modbot with `!summarize community_name`."
+    )
     resp = requests.post(f'https://squabblr.co/api/posts/{post_id}/reply', data={"content": content}, headers=headers)
     resp.raise_for_status()
     return resp.json()
