@@ -75,7 +75,6 @@ def send_reply(post_id, overview, key_points):
         "-----\n\n"
         "I am a bot. Post feedback and suggestions to /s/ModBot. Want this bot in your community? DM @modbot with `!summarize community_name`."
     )
-    https://squabblr.co/api/posts/7voPpazpoJ/reply
     resp = requests.post(f'https://squabblr.co/api/posts/{post_hash_id}/reply', data={"content": content}, headers=headers)
     resp.raise_for_status()
     return resp.json()
