@@ -63,7 +63,6 @@ def generate_key_points(text):
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def send_reply(post_hash_id, overview, key_points):
-    post_hash_id = post['hash_id']
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
     content = (
         "This is the best TL;DR I could put together from this article:\n\n"
