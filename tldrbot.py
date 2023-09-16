@@ -18,6 +18,7 @@ def fetch_gist_data():
     headers = {'Authorization': f'token {GIST_TOKEN}'}
     response = requests.get(GIST_URL, headers=headers)
     response.raise_for_status()
+    print(f"Fetched data from Gist: {communities_data}")
     return response.json()
 
 def fetch_new_posts(community_name, last_processed_id):
@@ -26,6 +27,7 @@ def fetch_new_posts(community_name, last_processed_id):
     posts_data = response.json()  # Ensure this is parsed as JSON
     posts = posts_data if isinstance(posts_data, list) else []  # Ensure posts is a list
     new_posts = [post for post in posts if post['id'] > last_processed_id]
+    print(f"Fetched new posts for community {community_name}: {new_posts}")
     return new_posts
 
 def load_domain_blacklist():
@@ -100,19 +102,31 @@ def main():
     # Initialization
     communities_data = fetch_gist_data()
     domain_blacklist = load_domain_blacklist()
+    print(f"Loaded domain blacklist: {domain_blacklist}")
     
     # Processing
     for community in communities_data:
+        print(f"Processing community: {community['community']}")
         new_posts = fetch_new_posts(community["community"], community["last_processed_id"])
+
+        if not new_posts:
+            print(f"No new posts found for community {community['community']}.")
+            continue
+            
         for post in new_posts:
+            print(f"Processing post with ID {post['id']} for community {community['community']}")
             post_url = post["url_meta"]["url"]
             if is_domain_blacklisted(post_url, domain_blacklist):
                 continue
             meta_description, article_content = scrape_content(post_url)
             overview = meta_description if meta_description else generate_overview(article_content)
             key_points = generate_key_points(article_content)
+            print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
             send_reply(post["id"], overview, key_points)
+            print(f"Reply sent for post with ID {post['id']} for community {community['community']}")
             update_gist(community["community"], post["id"], communities_data)
+
+        print("TL;DR bot processing complete.")
 
 if __name__ == "__main__":
     main()
