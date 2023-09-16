@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import time
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 
@@ -41,16 +42,32 @@ def is_domain_blacklisted(url, blacklist):
     return domain in blacklist
 
 def scrape_content(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.content, 'html.parser')
-    meta_description = None
-    meta_tag = soup.find("meta", {"name": "description"}) or soup.find("meta", {"property": "og:description"})
-    if meta_tag:
-        meta_description = meta_tag["content"]
-    paragraphs = soup.find_all("p")
-    article_content = " ".join(p.text for p in paragraphs if len(p.text) > 100)
-    return meta_description, article_content
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract meta description
+        meta_description = soup.find('meta', attrs={"name": "description"})
+        if meta_description:
+            meta_description = meta_description["content"]
+        
+        # Extract article content
+        article_content = soup.body.get_text(separator="\n").strip()
+        
+        return meta_description, article_content
+    
+    except requests.exceptions.HTTPError as err:
+        print(f"HTTP error occurred for URL {url}: {err}")
+        return None, None
+
+    finally:
+        time.sleep(3)  # Introducing a delay of 3 seconds between requests
 
 def generate_overview(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
