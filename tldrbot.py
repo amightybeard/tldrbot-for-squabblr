@@ -26,7 +26,7 @@ def fetch_new_posts(community_name, last_processed_id):
     response = requests.get(f'https://squabblr.co/api/s/{community_name}/posts?page=1&sort=new')
     response.raise_for_status()
     posts_data = response.json()  # Ensure this is parsed as JSON
-    posts = posts_data if isinstance(posts_data, list) else []  # Ensure posts is a list
+    posts = posts_data["data"] if "data" in posts_data else [] 
     new_posts = [post for post in posts if post['id'] > last_processed_id]
     print(f"Fetched new posts for community {community_name}: {new_posts}")
     return new_posts
