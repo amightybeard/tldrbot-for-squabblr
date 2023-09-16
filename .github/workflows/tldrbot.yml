@@ -16,11 +16,20 @@ jobs:
       with:
         python-version: 3.8
 
+    # Cache Python dependencies
+    - name: Cache Python dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('includes/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     # Install dependencies (like transformers, requests, and bs4)
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install transformers requests beautifulsoup4 torch
+        pip install -r includes/requirements.txt
 
     # Run the bot
     - name: Run TLDR Bot
