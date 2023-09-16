@@ -1,5 +1,4 @@
+transformers
 requests
-trafilatura
-beautifulsoup4==4.9.3
-transformers==4.6.0
-torch==1.8.1
+beautifulsoup4
+torch
