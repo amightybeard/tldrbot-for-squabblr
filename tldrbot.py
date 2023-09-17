@@ -158,7 +158,43 @@ def update_gist(community_name, new_last_processed_id, communities_data):
     return response.json()
 
 # Main Execution
-def main():
+# def main():
     # Initialization
-    communities_data = fetch_gist_data()
-    domain_blacklist
+    # communities_data = fetch_gist_data()
+    # domain_blacklist
+
+def main():
+    try:
+        # Check environment variables
+        print(f"SQUABBLES_TOKEN present: {bool(SQUABBLES_TOKEN)}")
+        print(f"GITHUB_TOKEN present: {bool(GIST_TOKEN)}")
+        print(f"TLDRBOT_GIST present: {bool(GIST_ID)}")
+
+        # Initialization
+        print("Fetching data from Gist...")
+        communities_data = fetch_gist_data()
+        
+        print(f"Loaded domain blacklist...")
+        domain_blacklist = load_domain_blacklist()
+    
+        # Processing
+        for community in communities_data:
+            print(f"Processing community: {community['community']}")
+            new_posts = fetch_new_posts(community["community"], community["last_processed_id"])
+
+            if not new_posts:
+                print(f"No new posts found for community {community['community']}.")
+                continue
+                
+            for post in new_posts:
+                print(f"Processing post with ID {post['id']} for community {community['community']}")
+                # ... (rest of the logic)
+
+        print("TL;DR bot processing complete.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise
+
+if __name__ == "__main__":
+    main()
