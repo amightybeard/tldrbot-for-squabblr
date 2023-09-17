@@ -76,7 +76,7 @@ def generate_overview(text):
 
 def generate_key_points(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=1500, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def send_reply(post_hash_id, overview, key_points):
