@@ -58,7 +58,8 @@ def scrape_content(url):
             meta_description = meta_description["content"]
         
         # Extract article content
-        article_content = soup.body.get_text(separator="\n").strip()
+        paragraphs = soup.find_all("p")
+        article_content = " ".join(p.text for p in paragraphs if len(p.text) > 100)
         
         return meta_description, article_content
     
