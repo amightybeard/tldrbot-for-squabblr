@@ -4,10 +4,6 @@ import json
 import time
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import AgglomerativeClustering
-import re
 
 # Constants and Initializations
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
@@ -17,10 +13,6 @@ FILE_NAME = 'tldrbot.json'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
-
-if not SQUABBLES_TOKEN or not GIST_TOKEN or not GIST_ID:
-    print("Error: One or more required environment variables are missing!")
-    exit(1)
 
 # Utility Functions
 def fetch_gist_data():
@@ -82,44 +74,10 @@ def generate_overview(text):
     summary_ids = model.generate(inputs, max_length=600, min_length=150, length_penalty=2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-def correct_text(text):
-    # Placeholder function for now, can be expanded in the future
-    corrections = {
-        " netyards ": " net yards ",
-        " stook ": " stood "
-    }
-    for error, correction in corrections.items():
-        text = text.replace(error, correction)
-    return text
-
-def group_and_format_sentences(sentences):
-    vectorizer = TfidfVectorizer().fit_transform(sentences)
-    vectors = vectorizer.toarray()
-    cosine_matrix = cosine_similarity(vectors)
-    clustering = AgglomerativeClustering(affinity="precomputed", linkage="average", n_clusters=None, distance_threshold=0.8)
-    clustering.fit(1 - cosine_matrix)
-    
-    clustered_sentences = {}
-    for idx, label in enumerate(clustering.labels_):
-        if label not in clustered_sentences:
-            clustered_sentences[label] = []
-        clustered_sentences[label].append(sentences[idx])
-    
-    formatted_output = []
-    for group, group_sentences in clustered_sentences.items():
-        formatted_output.append(" - " + " ".join(group_sentences))
-    return formatted_output
-
-def process_and_format_summary(text):
-    text = correct_text(text)
-    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
-    return "\n".join(group_and_format_sentences(sentences))
-
 def generate_key_points(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
     summary_ids = model.generate(inputs, max_length=1500, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
-    summary_text = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-    return process_and_format_summary(summary_text)
+    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def send_reply(post_hash_id, overview, key_points):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
@@ -158,66 +116,35 @@ def update_gist(community_name, new_last_processed_id, communities_data):
     return response.json()
 
 # Main Execution
-# def main():
-    # Initialization
-    # communities_data = fetch_gist_data()
-    # domain_blacklist
-
 def main():
-    try:
-        # Check environment variables
-        print(f"SQUABBLES_TOKEN present: {bool(SQUABBLES_TOKEN)}")
-        print(f"GITHUB_TOKEN present: {bool(GIST_TOKEN)}")
-        print(f"TLDRBOT_GIST present: {bool(GIST_ID)}")
-
-        # Initialization
-        print("Fetching data from Gist...")
-        communities_data = fetch_gist_data()
-        
-        print(f"Loaded domain blacklist...")
-        domain_blacklist = load_domain_blacklist()
+    # Initialization
+    communities_data = fetch_gist_data()
+    domain_blacklist = load_domain_blacklist()
+    print(f"Loaded domain blacklist: {domain_blacklist}")
     
-        # Processing
-        for community in communities_data:
-            print(f"Processing community: {community['community']}")
-            new_posts = fetch_new_posts(community["community"], community["last_processed_id"])
+    # Processing
+    for community in communities_data:
+        print(f"Processing community: {community['community']}")
+        new_posts = fetch_new_posts(community["community"], community["last_processed_id"])
 
-            if not new_posts:
-                print(f"No new posts found for community {community['community']}.")
+        if not new_posts:
+            print(f"No new posts found for community {community['community']}.")
+            continue
+            
+        for post in new_posts:
+            print(f"Processing post with ID {post['id']} for community {community['community']}")
+            post_url = post["url_meta"]["url"]
+            if is_domain_blacklisted(post_url, domain_blacklist):
                 continue
-                
-            for post in new_posts:
-                print(f"Processing post with ID {post['id']} for community {community['community']}")
-                
-                # Check if the domain is blacklisted
-                if is_domain_blacklisted(post['url'], domain_blacklist):
-                    print(f"URL {post['url']} is from a blacklisted domain.")
-                    continue
-
-                # Scrape the content
-                meta_description, article_content = scrape_content(post['url_meta']['url'])
-
-                if not article_content:
-                    print(f"Failed to scrape content for URL {post['url']}.")
-                    continue
-
-                # Generate the overview and key points
-                overview = generate_overview(article_content)
-                key_points = generate_key_points(article_content)
-
-                # Send the reply to Squabblr
-                response = send_reply(post['hash_id'], overview, key_points)
-                print(f"Reply sent to post {post['hash_id']}. Response: {response}")
-                
-                # Update the last_processed_id for the community
-                update_gist(community['community'], post['id'], communities_data)
-                print(f"Updated last_processed_id for community {community['community']} to {post['id']}.")
+            meta_description, article_content = scrape_content(post_url)
+            overview = meta_description if meta_description else generate_overview(article_content)
+            key_points = generate_key_points(article_content)
+            print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
+            send_reply(post['hash_id'], overview, key_points)
+            print(f"Reply sent for post with ID {post['id']} for community {community['community']}")
+            update_gist(community["community"], post["id"], communities_data)
 
         print("TL;DR bot processing complete.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        raise
 
 if __name__ == "__main__":
     main()
