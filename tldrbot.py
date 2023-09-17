@@ -195,7 +195,7 @@ def main():
                     continue
 
                 # Scrape the content
-                meta_description, article_content = scrape_content(post['url'])
+                meta_description, article_content = scrape_content(post['url_meta']['url'])
 
                 if not article_content:
                     print(f"Failed to scrape content for URL {post['url']}.")
