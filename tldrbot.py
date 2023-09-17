@@ -75,6 +75,28 @@ def generate_overview(text):
     summary_ids = model.generate(inputs, max_length=600, min_length=150, length_penalty=2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
+def group_and_format_sentences(sentences):
+    vectorizer = TfidfVectorizer().fit_transform(sentences)
+    vectors = vectorizer.toarray()
+    cosine_matrix = cosine_similarity(vectors)
+    clustering = AgglomerativeClustering(affinity="precomputed", linkage="average", n_clusters=None, distance_threshold=0.8)
+    clustering.fit(1 - cosine_matrix)
+    
+    clustered_sentences = {}
+    for idx, label in enumerate(clustering.labels_):
+        if label not in clustered_sentences:
+            clustered_sentences[label] = []
+        clustered_sentences[label].append(sentences[idx])
+    
+    formatted_output = []
+    for group, group_sentences in clustered_sentences.items():
+        formatted_output.append(" - " + " ".join(group_sentences))
+    return formatted_output
+
+def process_and_format_summary(text):
+    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+    return "\n".join(group_and_format_sentences(sentences))
+
 def generate_key_points(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
     summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
