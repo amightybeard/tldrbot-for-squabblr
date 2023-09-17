@@ -18,6 +18,10 @@ GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
 
+if not SQUABBLES_TOKEN or not GITHUB_TOKEN or not TLDRBOT_GIST:
+    print("Error: One or more required environment variables are missing!")
+    exit(1)
+
 # Utility Functions
 def fetch_gist_data():
     headers = {'Authorization': f'token {GIST_TOKEN}'}
