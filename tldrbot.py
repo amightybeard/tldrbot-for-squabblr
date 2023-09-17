@@ -188,7 +188,30 @@ def main():
                 
             for post in new_posts:
                 print(f"Processing post with ID {post['id']} for community {community['community']}")
-                # ... (rest of the logic)
+                
+                # Check if the domain is blacklisted
+                if is_domain_blacklisted(post['url'], domain_blacklist):
+                    print(f"URL {post['url']} is from a blacklisted domain.")
+                    continue
+
+                # Scrape the content
+                meta_description, article_content = scrape_content(post['url'])
+
+                if not article_content:
+                    print(f"Failed to scrape content for URL {post['url']}.")
+                    continue
+
+                # Generate the overview and key points
+                overview = generate_overview(article_content)
+                key_points = generate_key_points(article_content)
+
+                # Send the reply to Squabblr
+                response = send_reply(post['hash_id'], overview, key_points)
+                print(f"Reply sent to post {post['hash_id']}. Response: {response}")
+                
+                # Update the last_processed_id for the community
+                update_gist(community['community'], post['id'], communities_data)
+                print(f"Updated last_processed_id for community {community['community']} to {post['id']}.")
 
         print("TL;DR bot processing complete.")
 
