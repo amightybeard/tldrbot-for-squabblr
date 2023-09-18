@@ -107,7 +107,7 @@ def send_reply(post_hash_id, overview, key_points):
     content = (
         "This is the best TL;DR I could put together from this article:\n\n"
         "-----\n\n"
-        "f"{overview}\n\n"
+        f"{overview}\n\n"
         "-----\n\n"
         "I am a bot. Post feedback and suggestions to /s/ModBot. Want this bot in your community? DM @modbot with `!summarize community_name`."
     )
@@ -127,7 +127,7 @@ def update_gist(community_name, new_last_processed_id, communities_data):
     data = {
         "files": {
             FILE_NAME: {
-                "content": json.dumps(communities_data)
+                "content": json.dumps(communities_data, indent=4)
             }
         }
     }
