@@ -97,20 +97,17 @@ def process_and_format_summary(text):
     sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
     return "\n".join(group_and_format_sentences(sentences))
 
-def generate_key_points(text):
-    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
-    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+# def generate_key_points(text):
+#     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
+#     summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
+#     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
 def send_reply(post_hash_id, overview, key_points):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
     content = (
         "This is the best TL;DR I could put together from this article:\n\n"
         "-----\n\n"
-        "🔍 **Overview**:\n"
-        f"{overview}\n\n"
-        "📌 **Key Points**:\n"
-        f"{key_points}\n\n"
+        "f"{overview}\n\n"
         "-----\n\n"
         "I am a bot. Post feedback and suggestions to /s/ModBot. Want this bot in your community? DM @modbot with `!summarize community_name`."
     )
@@ -161,7 +158,7 @@ def main():
                 continue
             meta_description, article_content = scrape_content(post_url)
             overview = meta_description if meta_description else generate_overview(article_content)
-            key_points = generate_key_points(article_content)
+            # key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
             send_reply(post['hash_id'], overview, key_points)
             print(f"Reply sent for post with ID {post['id']} for community {community['community']}")
