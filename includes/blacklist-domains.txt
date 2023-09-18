@@ -3,3 +3,4 @@ youtube.com
 youtu.be
 yt.be
 twitter.com
+espn\.com/nfl/game/_/gameId/
