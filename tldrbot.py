@@ -153,6 +153,11 @@ def main():
             
         for post in new_posts:
             print(f"Processing post with ID {post['id']} for community {community['community']}")
+
+            if "url_meta" not in post or not post["url_meta"] or "url" not in post["url_meta"]:
+                print(f"Skipping post with ID {post['id']} as it doesn't have a valid URL.")
+                continue
+            
             post_url = post["url_meta"]["url"]
             if is_domain_blacklisted(post_url, domain_blacklist):
                 continue
