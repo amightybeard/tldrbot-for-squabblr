@@ -44,6 +44,26 @@ def is_domain_blacklisted(url, blacklist):
             return True
     return False
 
+# Constants for main content identification
+CONTENT_IDENTIFIERS = {
+    "apnews.com": "div.RichTextStoryBody",
+    "arstechnica.com": "div.article-content",
+    "technologyreview.com": "div.post-content__body",
+    "theverge.com": "article#content",
+    "thereporteronline.com": "div.article-body",
+    "foxbusiness.com": "div.article-body",
+    "foxnews.com": "div.article-body",
+    "bbc.com": "article.*-ArticleWrapper",
+    "business-insider.com": "div.content-lock-content",
+    "npr.com": "div.storytext",
+    "thehill.com": ".article__text",
+    "channelnewsasia.com": "section.block-field-blocknodearticlefield-content",
+    "reuters.com": "div.article-body__content__*"
+}
+
+AVOID_ELEMENTS = ["aside", "figure", "footer", "header"]
+AVOID_CLASSES = ["sidebar", "bxc", "byline", "ByLine", "caption", "ad"]
+
 def scrape_content(url):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -60,9 +80,20 @@ def scrape_content(url):
         if meta_description:
             meta_description = meta_description["content"]
         
-        # Extract article content
-        paragraphs = soup.find_all("p")
-        article_content = " ".join(p.text for p in paragraphs if len(p.text) > 100)
+        # Extract article content based on known domain patterns
+        content_selector = None
+        for domain, selector in CONTENT_IDENTIFIERS.items():
+            if domain in url:
+                content_selector = selector
+                break
+        
+        if content_selector:
+            paragraphs = soup.select(content_selector)
+        else:
+            paragraphs = soup.find_all("p")
+        
+        # Filter out unwanted elements and classes
+        article_content = " ".join(p.text for p in paragraphs if p.name not in AVOID_ELEMENTS and not any(cls in ' '.join(p.get("class", [])) for cls in AVOID_CLASSES))
         
         return meta_description, article_content
     
@@ -71,7 +102,7 @@ def scrape_content(url):
         return None, None
 
     finally:
-        time.sleep(3)  # Introducing a delay of 3 seconds between requests
+        time.sleep(10)  # Introducing a delay of 3 seconds between requests
 
 def generate_overview(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
