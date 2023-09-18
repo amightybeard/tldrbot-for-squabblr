@@ -102,7 +102,7 @@ def process_and_format_summary(text):
 #     summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
 #     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-def send_reply(post_hash_id, overview, key_points):
+def send_reply(post_hash_id, overview):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
     content = (
         "This is the best TL;DR I could put together from this article:\n\n"
@@ -160,7 +160,7 @@ def main():
             overview = meta_description if meta_description else generate_overview(article_content)
             # key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
-            send_reply(post['hash_id'], overview, key_points)
+            send_reply(post['hash_id'], overview)
             print(f"Reply sent for post with ID {post['id']} for community {community['community']}")
             update_gist(community["community"], post["id"], communities_data)
 
