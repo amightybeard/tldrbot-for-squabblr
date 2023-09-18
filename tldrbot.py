@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import time
+import re
 from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 
@@ -38,8 +39,10 @@ def load_domain_blacklist():
         return [line.strip() for line in file if line.strip()]
 
 def is_domain_blacklisted(url, blacklist):
-    domain = url.split("//")[-1].split("/")[0]
-    return domain in blacklist
+    for pattern in blacklist:
+        if re.search(pattern, url):
+            return True
+    return False
 
 def scrape_content(url):
     headers = {
