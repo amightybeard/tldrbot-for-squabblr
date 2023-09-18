@@ -29,7 +29,7 @@ def fetch_new_posts(community_name, last_processed_id):
     posts_data = response.json()  # Ensure this is parsed as JSON
     posts = posts_data["data"] if "data" in posts_data else [] 
     new_posts = [post for post in posts if post['id'] > last_processed_id]
-    print(f"Fetched new posts for community {community_name}: {new_posts}")
+    print(f"Fetched new posts for community {community_name}")
     return new_posts
 
 def load_domain_blacklist():
