@@ -1,9 +1,7 @@
 import os
 import requests
 import json
-import time
-import re
-from bs4 import BeautifulSoup
+import logging
 
 # Constants and Initializations
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
@@ -43,87 +41,28 @@ def is_domain_blacklisted(url, blacklist):
             return True
     return False
 
-# Constants for main content identification
-CONTENT_IDENTIFIERS = {
-    "apnews.com": "div.RichTextStoryBody",
-    "arstechnica.com": "div.article-content",
-    "technologyreview.com": "div.post-content__body",
-    "theverge.com": "article#content",
-    "thereporteronline.com": "div.article-body",
-    "foxbusiness.com": "div.article-body",
-    "foxnews.com": "div.article-body",
-    "bbc.com": "article.*-ArticleWrapper",
-    "business-insider.com": "div.content-lock-content",
-    "npr.com": "div.storytext",
-    "thehill.com": ".article__text",
-    "channelnewsasia.com": "section.block-field-blocknodearticlefield-content",
-    "reuters.com": "div.article-body__content__*",
-    "scientificamerican.com": "div.article-text"
-}
-
-AVOID_ELEMENTS = ["aside", "figure", "footer", "header"]
-AVOID_CLASSES = ["sidebar", "bxc", "byline", "ByLine", "caption", "ad"]
-
-def scrape_content(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
+def get_summary_from_tldrthis(post_url):
+    """
+    Fetches a summarized version of the content from the provided post_url using tldrthis.com.
+    """
+    # URL for tldrthis.com
+    url = "https://tldrthis.com/tldr/process-text/"
     
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        # Make a GET request to the URL with the post URL as a parameter
+        response = requests.get(url, params={'text_url': post_url})
         
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Extract meta description
-        meta_description = soup.find('meta', attrs={"property": "og:description"})
-        if meta_description:
-            meta_description = meta_description["content"]
-        
-        # Extract article content based on known domain patterns
-        content_selector = None
-        for domain, selector in CONTENT_IDENTIFIERS.items():
-            if domain in url:
-                content_selector = selector
-                break
-        
-        if content_selector:
-            paragraphs = soup.select(content_selector)
+        # If the request was successful, extract and return the summary
+        if response.status_code == 200:
+            data = response.json()
+            return " ".join(data[1])
         else:
-            paragraphs = soup.find_all("p")
-        
-        # Filter out unwanted elements and classes
-        article_content = " ".join(p.text for p in paragraphs if p.name not in AVOID_ELEMENTS and not any(cls in ' '.join(p.get("class", [])) for cls in AVOID_CLASSES))
-        
-        return meta_description, article_content
-    
-    except requests.exceptions.HTTPError as err:
-        print(f"HTTP error occurred for URL {url}: {err}")
-        return None, None
+            logging.error(f"Failed to fetch summary for URL {post_url}. Status code: {response.status_code}")
+            return None
 
-    finally:
-        time.sleep(10)  # Introducing a delay of 3 seconds between requests
-
-def get_summary_via_tldrthis(text, num_sentences=5):
-    url = "https://tldrthis.p.rapidapi.com/v1/model/extractive/summarize-text/"
-    headers = {
-        "content-type": "application/json",
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
-        "X-RapidAPI-Host": RAPIDAPI_HOST
-    }
-    payload = {
-        "text": text,
-        "num_sentences": num_sentences
-    }
-    
-    response = requests.post(url, json=payload, headers=headers)
-    response_data = response.json()
-
-    # Extract the summary from the response and join the sentences
-    summary_list = response_data.get("summary", [])
-    summary = ' '.join(summary_list)
-    
-    return summary
+    except Exception as e:
+        logging.error(f"Exception occurred while fetching summary for URL {post_url}. Error: {str(e)}")
+        return None
 
 def send_reply(post_hash_id, overview):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
@@ -191,7 +130,12 @@ def main():
                 continue
             meta_description, article_content = scrape_content(post_url)
 
-            overview = get_summary_via_tldrthis(article_content, num_sentences=5)
+            # Fetch the summary from tldrthis.com
+            overview = get_summary_from_tldrthis(post_url)
+        
+            if not summary:
+                logging.error(f"Failed to generate a summary for post with ID {post['id']}. Skipping.")
+                continue
             
             # key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
