@@ -131,7 +131,7 @@ def main():
             # Fetch the summary from tldrthis.com
             overview = get_summary_from_tldrthis(post_url)
         
-            if not summary:
+            if not overview:
                 logging.error(f"Failed to generate a summary for post with ID {post['id']}. Skipping.")
                 continue
             
