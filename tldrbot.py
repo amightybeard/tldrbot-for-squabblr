@@ -76,7 +76,7 @@ def scrape_content(url):
         soup = BeautifulSoup(response.content, 'html.parser')
         
         # Extract meta description
-        meta_description = soup.find('meta', attrs={"name": "description"})
+        meta_description = soup.find('meta', attrs={"property": "og:description"})
         if meta_description:
             meta_description = meta_description["content"]
         
@@ -202,9 +202,9 @@ def main():
                 continue
             meta_description, article_content = scrape_content(post_url)
 
-            if meta_description and len(meta_description) >= 250:
+            if meta_description and len(meta_description) >= 300:
                 overview = meta_description
-            elif meta_description and len(meta_description) < 250:
+            elif meta_description and len(meta_description) < 300:
                 additional_summary = generate_overview(article_content)
                 combined_summary = meta_description + " " + additional_summary
                 overview = combined_summary[:600]
