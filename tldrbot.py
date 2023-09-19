@@ -10,8 +10,6 @@ GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
 GIST_ID = os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot.json'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
-RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
-RAPIDAPI_HOST = os.environ.get('RAPIDAPI_HOST')
 
 # Utility Functions
 def fetch_gist_data():
@@ -129,7 +127,6 @@ def main():
             post_url = post["url_meta"]["url"]
             if is_domain_blacklisted(post_url, domain_blacklist):
                 continue
-            meta_description, article_content = scrape_content(post_url)
 
             # Fetch the summary from tldrthis.com
             overview = get_summary_from_tldrthis(post_url)
