@@ -58,7 +58,8 @@ CONTENT_IDENTIFIERS = {
     "npr.com": "div.storytext",
     "thehill.com": ".article__text",
     "channelnewsasia.com": "section.block-field-blocknodearticlefield-content",
-    "reuters.com": "div.article-body__content__*"
+    "reuters.com": "div.article-body__content__*",
+    "scientificamerican.com": "div.article-text"
 }
 
 AVOID_ELEMENTS = ["aside", "figure", "footer", "header"]
