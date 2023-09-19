@@ -4,7 +4,6 @@ import json
 import time
 import re
 from bs4 import BeautifulSoup
-from transformers import BartForConditionalGeneration, BartTokenizer
 
 # Constants and Initializations
 SQUABBLES_TOKEN = os.environ.get('SQUABBLES_TOKEN')
@@ -12,8 +11,8 @@ GIST_TOKEN = os.environ.get('GITHUB_TOKEN')
 GIST_ID = os.environ.get('TLDRBOT_GIST')
 FILE_NAME = 'tldrbot.json'
 GIST_URL = f"https://gist.githubusercontent.com/amightybeard/{GIST_ID}/raw/{FILE_NAME}"
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-large-cnn')
-tokenizer = BartTokenizer.from_pretrained('facebook/bart-large-cnn')
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
+RAPIDAPI_HOST = os.environ.get('RAPIDAPI_HOST')
 
 # Utility Functions
 def fetch_gist_data():
@@ -105,55 +104,26 @@ def scrape_content(url):
     finally:
         time.sleep(10)  # Introducing a delay of 3 seconds between requests
 
-def generate_overview(text):
-    # 1. Generate a summary that's approximately 700 characters.
-    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=700, min_length=500, length_penalty=2.0, num_beams=4, early_stopping=True)
-    long_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-
-    # Split the long_summary into sentences
-    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', long_summary)
+def get_summary_via_tldrthis(text, num_sentences=5):
+    url = "https://tldrthis.p.rapidapi.com/v1/model/extractive/summarize-text/"
+    headers = {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": RAPIDAPI_HOST
+    }
+    payload = {
+        "text": text,
+        "num_sentences": num_sentences
+    }
     
-    # Reconstruct the summary by adding sentences one by one
-    reconstructed_summary = ""
-    for sentence in sentences:
-        if len(reconstructed_summary + sentence) > 650:
-            break
-        reconstructed_summary += sentence + " "
+    response = requests.post(url, json=payload, headers=headers)
+    response_data = response.json()
 
-    return reconstructed_summary.strip()
-
-def generate_single_sentence(text):
-    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
-    summary_ids = model.generate(inputs, max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
-    return tokenizer.decode(summary_ids[0], skip_special_tokens=True).split(".")[0] + "."
+    # Extract the summary from the response and join the sentences
+    summary_list = response_data.get("summary", [])
+    summary = ' '.join(summary_list)
     
-# def group_and_format_sentences(sentences):
-#     vectorizer = TfidfVectorizer().fit_transform(sentences)
-#     vectors = vectorizer.toarray()
-#     cosine_matrix = cosine_similarity(vectors)
-#     clustering = AgglomerativeClustering(affinity="precomputed", linkage="average", n_clusters=None, distance_threshold=0.8)
-#     clustering.fit(1 - cosine_matrix)
-    
-#     clustered_sentences = {}
-#     for idx, label in enumerate(clustering.labels_):
-#         if label not in clustered_sentences:
-#             clustered_sentences[label] = []
-#         clustered_sentences[label].append(sentences[idx])
-    
-#     formatted_output = []
-#     for group, group_sentences in clustered_sentences.items():
-#         formatted_output.append(" - " + " ".join(group_sentences))
-#     return formatted_output
-
-# def process_and_format_summary(text):
-#     sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
-#     return "\n".join(group_and_format_sentences(sentences))
-
-# def generate_key_points(text):
-#     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-#     summary_ids = model.generate(inputs, max_length=900, min_length=300, length_penalty=2.0, num_beams=4, early_stopping=True)
-#     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
 
 def send_reply(post_hash_id, overview):
     headers = {'authorization': 'Bearer ' + SQUABBLES_TOKEN}
@@ -221,14 +191,7 @@ def main():
                 continue
             meta_description, article_content = scrape_content(post_url)
 
-            if meta_description and len(meta_description) >= 300:
-                overview = meta_description
-            elif meta_description and len(meta_description) < 300:
-                additional_summary = generate_overview(article_content)
-                combined_summary = meta_description + " " + additional_summary
-                overview = combined_summary[:600]
-            else:
-                overview = generate_overview(article_content)
+            overview = get_summary_via_tldrthis(article_content, num_sentences=5)
             
             # key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
