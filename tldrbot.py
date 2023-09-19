@@ -201,7 +201,16 @@ def main():
             if is_domain_blacklisted(post_url, domain_blacklist):
                 continue
             meta_description, article_content = scrape_content(post_url)
-            overview = meta_description if meta_description else generate_overview(article_content)
+
+            if meta_description and len(meta_description) >= 250:
+                overview = meta_description
+            elif meta_description and len(meta_description) < 250:
+                additional_summary = generate_overview(article_content)
+                combined_summary = meta_description + " " + additional_summary
+                overview = combined_summary[:600]
+            else:
+                overview = generate_overview(article_content)
+            
             # key_points = generate_key_points(article_content)
             print(f"Summaries generated for post with ID {post['id']} for community {community['community']}")
             send_reply(post['hash_id'], overview)
