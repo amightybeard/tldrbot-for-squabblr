@@ -106,53 +106,49 @@ def scrape_content(url):
         time.sleep(10)  # Introducing a delay of 3 seconds between requests
 
 def generate_overview(text):
+    # 1. Generate a summary that's approximately 700 characters.
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=600, min_length=500, length_penalty=2.0, num_beams=4, early_stopping=True)
-    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    summary_ids = model.generate(inputs, max_length=700, min_length=500, length_penalty=2.0, num_beams=4, early_stopping=True)
+    long_summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
+    # Split the long_summary into sentences
+    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', long_summary)
     
-    # Split the summary into sentences
-    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', summary)
-    
-    # Adjust the summary to ensure it's within our desired range
-    while len(summary) > 650 and sentences:
-        sentences.pop()  # Remove the last sentence
-        summary = " ".join(sentences)
-    
-    while len(summary) < 500 and sentences:
-        additional_sentence = generate_single_sentence(text[len(summary):])
-        if not additional_sentence:
+    # Reconstruct the summary by adding sentences one by one
+    reconstructed_summary = ""
+    for sentence in sentences:
+        if len(reconstructed_summary + sentence) > 650:
             break
-        sentences.append(additional_sentence)
-        summary = " ".join(sentences)
-    
-    return summary
+        reconstructed_summary += sentence + " "
+
+    return reconstructed_summary.strip()
 
 def generate_single_sentence(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
     summary_ids = model.generate(inputs, max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True).split(".")[0] + "."
     
-def group_and_format_sentences(sentences):
-    vectorizer = TfidfVectorizer().fit_transform(sentences)
-    vectors = vectorizer.toarray()
-    cosine_matrix = cosine_similarity(vectors)
-    clustering = AgglomerativeClustering(affinity="precomputed", linkage="average", n_clusters=None, distance_threshold=0.8)
-    clustering.fit(1 - cosine_matrix)
+# def group_and_format_sentences(sentences):
+#     vectorizer = TfidfVectorizer().fit_transform(sentences)
+#     vectors = vectorizer.toarray()
+#     cosine_matrix = cosine_similarity(vectors)
+#     clustering = AgglomerativeClustering(affinity="precomputed", linkage="average", n_clusters=None, distance_threshold=0.8)
+#     clustering.fit(1 - cosine_matrix)
     
-    clustered_sentences = {}
-    for idx, label in enumerate(clustering.labels_):
-        if label not in clustered_sentences:
-            clustered_sentences[label] = []
-        clustered_sentences[label].append(sentences[idx])
+#     clustered_sentences = {}
+#     for idx, label in enumerate(clustering.labels_):
+#         if label not in clustered_sentences:
+#             clustered_sentences[label] = []
+#         clustered_sentences[label].append(sentences[idx])
     
-    formatted_output = []
-    for group, group_sentences in clustered_sentences.items():
-        formatted_output.append(" - " + " ".join(group_sentences))
-    return formatted_output
+#     formatted_output = []
+#     for group, group_sentences in clustered_sentences.items():
+#         formatted_output.append(" - " + " ".join(group_sentences))
+#     return formatted_output
 
-def process_and_format_summary(text):
-    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
-    return "\n".join(group_and_format_sentences(sentences))
+# def process_and_format_summary(text):
+#     sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+#     return "\n".join(group_and_format_sentences(sentences))
 
 # def generate_key_points(text):
 #     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
