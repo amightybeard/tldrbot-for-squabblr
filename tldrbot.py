@@ -107,9 +107,31 @@ def scrape_content(url):
 
 def generate_overview(text):
     inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(inputs, max_length=600, min_length=150, length_penalty=2.0, num_beams=4, early_stopping=True)
-    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    summary_ids = model.generate(inputs, max_length=600, min_length=500, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    
+    # Split the summary into sentences
+    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', summary)
+    
+    # Adjust the summary to ensure it's within our desired range
+    while len(summary) > 650 and sentences:
+        sentences.pop()  # Remove the last sentence
+        summary = " ".join(sentences)
+    
+    while len(summary) < 500 and sentences:
+        additional_sentence = generate_single_sentence(text[len(summary):])
+        if not additional_sentence:
+            break
+        sentences.append(additional_sentence)
+        summary = " ".join(sentences)
+    
+    return summary
 
+def generate_single_sentence(text):
+    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary_ids = model.generate(inputs, max_length=150, min_length=50, length_penalty=2.0, num_beams=4, early_stopping=True)
+    return tokenizer.decode(summary_ids[0], skip_special_tokens=True).split(".")[0] + "."
+    
 def group_and_format_sentences(sentences):
     vectorizer = TfidfVectorizer().fit_transform(sentences)
     vectors = vectorizer.toarray()
